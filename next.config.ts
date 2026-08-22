@@ -15,6 +15,8 @@ const securityHeaders = [
       `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
+      // 어르신 음성: /api/speech 의 mp3 를 blob: 으로 재생하고, iOS 잠금 해제용 무음 WAV 는 data: 다.
+      "media-src 'self' blob: data:",
       // 문서에서 읽은 주소로 나가지 않는다. 우리 API Route 만 부른다.
       "connect-src 'self'",
       "font-src 'self' data:",
