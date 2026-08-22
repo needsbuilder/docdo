@@ -53,6 +53,11 @@ JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch(37)
 - 심사: Upstage 기술 30% / 완성도 20% / 창의성 25% / 기획 25%.
 - **"Upstage Studio must be used at the core of the document-handling pipeline"** — 비협상 조건.
 
+## 배포 함정
+
+- **Git 푸시는 배포가 아니다.** Vercel Git 연동이 없어서 `main`에 푸시해도 docdo.vercel.app은 안 바뀐다. **반드시 `vercel --prod --yes`** (8/23 07:00~08:30 여섯 번 푸시가 전부 미배포였다 — 음성·에이전트가 "반영 안 됨"으로 보인 원인).
+- 배포 확인은 `curl -X POST https://docdo.vercel.app/api/speech` 가 HTML 404 가 아닌 JSON/audio 인지로.
+
 ## 작업 방식
 
 - **팀원 산출물에 의존하지 않는다.** 백엔드·프론트·UI/UX 전부 직접 만든다.
