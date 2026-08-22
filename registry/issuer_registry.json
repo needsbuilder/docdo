@@ -1,7 +1,7 @@
 {
   "$schema_note": "공식 연락처·도메인 레지스트리. 값은 각 기관 공식 페이지에서 직접 확인한 것만 기록한다. 미등록 기관은 unknown_issuer.",
-  "version": "2026-08-22.1",
-  "coverage_note": "4개 기관 시범 적용. 전국 공공기관을 지원하지 않는다.",
+  "version": "2026-08-23.1",
+  "coverage_note": "5개 기관 시범 적용(건보·복지부·연금·한전·포항시). 전국 공공기관을 지원하지 않으며, 민간 사업자(통신·금융)는 대조 대상이 아니다.",
   "issuers": [
     {
       "issuer_id": "nhis",
@@ -27,6 +27,9 @@
       "doc_types": [
         "건강보험료",
         "장기요양보험료"
+      ],
+      "phone_prefixes": [
+        "1577-1000"
       ]
     },
     {
@@ -57,6 +60,10 @@
       "doc_types": [
         "복지 신청 안내",
         "기초연금 안내"
+      ],
+      "phone_prefixes": [
+        "129",
+        "1335"
       ]
     },
     {
@@ -82,6 +89,9 @@
       "doc_types": [
         "국민연금",
         "기초연금 신청"
+      ],
+      "phone_prefixes": [
+        "1355"
       ]
     },
     {
@@ -108,8 +118,46 @@
       "verified_at": "2026-08-22",
       "doc_types": [
         "전기요금"
+      ],
+      "phone_prefixes": [
+        "123"
+      ]
+    },
+    {
+      "issuer_id": "pohang",
+      "display_name": "포항시",
+      "aliases": [
+        "포항시",
+        "포항시청",
+        "경상북도 포항시",
+        "포항시 남구",
+        "포항시 북구"
+      ],
+      "official_hosts": [
+        "www.pohang.go.kr",
+        "pohang.go.kr",
+        "www.wetax.go.kr",
+        "wetax.go.kr"
+      ],
+      "official_phones": [
+        "054-270-8282",
+        "110"
+      ],
+      "phone_note": "대표전화 054-270-8282 (공식 홈페이지 확인). 지방세 납부는 위택스",
+      "source_urls": [
+        "https://www.pohang.go.kr/main.do"
+      ],
+      "verified_at": "2026-08-23",
+      "doc_types": [
+        "지방세",
+        "주민세",
+        "체납 독촉장"
+      ],
+      "phone_prefixes": [
+        "054-270"
       ]
     }
   ],
-  "pending": []
+  "pending": [],
+  "prefix_note": "phone_prefixes: 같은 기관의 부서 직통번호를 인정하기 위한 국번 대역. 054-270-6230(세무과)과 054-270-8282(대표)는 같은 기관이다."
 }
