@@ -5,6 +5,7 @@ import { VERDICT_LABEL } from "@/lib/verify";
 import type { Verdict } from "@/lib/types";
 import type { DocView } from "@/lib/poll";
 import CheckList from "@/components/CheckList";
+import BenefitHints from "@/components/BenefitHints";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
 // 다만 실행 경로가 되는 연락처·링크는 레지스트리 값만 쓴다 — 문서에서 읽은 값은 표시만 한다.
@@ -140,6 +141,8 @@ export default function Guardian() {
                   <CheckList result={r} />
                 </div>
               )}
+
+              {r && <BenefitHints result={r} />}
 
               {r?.reasons && r.reasons.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm leading-relaxed">
