@@ -58,11 +58,10 @@ describe("store — 파일 어댑터", () => {
     expect(await store().update("nope", { verdict: "clear" })).toBeNull();
   });
 
-  it("최신순으로 준다", async () => {
+  it("최신순으로 준다 — 같은 밀리초에 들어와도", async () => {
     const { store } = await import("@/lib/store");
     const db = store();
     const a = await db.insert({ upstage_job_id: "a", upstage_file_id: null, pipeline_status: "queued" });
-    await db.update(a.id, { created_at: "2020-01-01T00:00:00.000Z" });
     const b = await db.insert({ upstage_job_id: "b", upstage_file_id: null, pipeline_status: "queued" });
     expect((await db.list()).map((r) => r.id)).toEqual([b.id, a.id]);
   });

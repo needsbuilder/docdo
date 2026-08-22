@@ -168,10 +168,13 @@ const fileStore: DocStore = {
   },
   async list(limit = LIST_LIMIT) {
     const rows = await readAll();
+    // 같은 밀리초에 들어온 행이 있을 수 있다. 그때는 나중에 넣은 것이 먼저다.
     return rows
-      .filter((r) => r.household_id === HOUSEHOLD)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at))
-      .slice(0, limit);
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => r.household_id === HOUSEHOLD)
+      .sort((a, b) => b.r.created_at.localeCompare(a.r.created_at) || b.i - a.i)
+      .slice(0, limit)
+      .map(({ r }) => r);
   },
   async get(id) {
     return (await readAll()).find((r) => r.id === id) ?? null;

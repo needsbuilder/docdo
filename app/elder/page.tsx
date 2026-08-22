@@ -1,16 +1,155 @@
-import Link from "next/link";
+"use client";
 
-// Task 6에서 실제 촬영·판독 화면으로 교체된다.
-export default function ElderPlaceholder() {
+import { useCallback, useEffect, useRef, useState } from "react";
+import { compress } from "@/lib/compress";
+import { primeSpeech, speak } from "@/lib/speak";
+import { pollDocument, PollTimeout, type DocView } from "@/lib/poll";
+import ElderResult from "@/components/ElderResult";
+
+type Stage = "idle" | "uploading" | "waiting" | "done" | "error";
+
+// 대기 문구는 시간이 갈수록 바뀐다. 같은 화면이 40초 넘게 멈춰 있으면 고장으로 읽힌다.
+const WAIT_TEXT = [
+  "사진을 안전하게 보내고 있어요",
+  "문서를 읽고 있어요",
+  "사진 상태에 따라 조금 더 걸릴 수 있어요",
+  "분석은 계속돼요. 잠시만 기다려 주세요",
+];
+
+function waitLine(seconds: number): string {
+  if (seconds > 45) return WAIT_TEXT[3];
+  if (seconds > 15) return WAIT_TEXT[2];
+  return WAIT_TEXT[1];
+}
+
+export default function Elder() {
+  const [stage, setStage] = useState<Stage>("idle");
+  const [seconds, setSeconds] = useState(0);
+  const [doc, setDoc] = useState<DocView | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (stage !== "uploading" && stage !== "waiting") return;
+    const t = setInterval(() => setSeconds((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [stage]);
+
+  // 화면을 떠나면 폴링을 멈춘다.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  const submit = useCallback(async (f: File) => {
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setStage("uploading");
+    setSeconds(0);
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        body: fd,
+        signal: ac.signal,
+      });
+      if (!res.ok) throw new Error(`업로드 실패 ${res.status}`);
+      const { id } = (await res.json()) as { id: string };
+
+      setStage("waiting");
+      const result = await pollDocument(id, { signal: ac.signal });
+      if (ac.signal.aborted) return;
+
+      setDoc(result);
+      setStage("done");
+      if (result.phrases?.speech) speak(result.phrases.speech);
+    } catch (e) {
+      if (ac.signal.aborted) return;
+      setStage("error");
+      if (e instanceof PollTimeout) {
+        speak("판독이 예상보다 오래 걸리고 있어요. 잠시 후 다시 찍어 주세요.");
+      }
+    }
+  }, []);
+
+  async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    // 같은 파일을 다시 골라도 change 가 뜨도록 값을 비운다.
+    e.target.value = "";
+    if (!f) return;
+    const { file } = await compress(f);
+    await submit(file);
+  }
+
+  function onShoot() {
+    // iOS 는 첫 발화가 사용자 제스처 안에서 일어나야 한다.
+    // 여기서 풀어두지 않으면 판독 완료 후의 speak() 가 조용히 무시된다.
+    primeSpeech();
+    inputRef.current?.click();
+  }
+
+  if (stage === "done" && doc) {
+    return (
+      <ElderResult
+        doc={doc}
+        onReset={() => {
+          setDoc(null);
+          setStage("idle");
+        }}
+      />
+    );
+  }
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6 text-center">
-      <h1 className="text-3xl font-bold">준비 중입니다</h1>
-      <p className="text-xl leading-relaxed text-neutral-700">
-        우편물을 찍어 확인하는 화면을 만들고 있습니다.
-      </p>
-      <Link href="/" className="text-xl font-semibold text-[#1a4f8b] underline">
-        처음으로
-      </Link>
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-8 p-6">
+      {stage === "idle" && (
+        <>
+          <p className="text-center text-2xl font-semibold leading-relaxed">
+            우편물을
+            <br />
+            사진으로 찍어주세요
+          </p>
+          <button
+            onClick={onShoot}
+            className="flex h-56 w-56 flex-col items-center justify-center gap-3 rounded-full bg-[#1a4f8b] text-white shadow-lg active:scale-95"
+          >
+            <span className="text-6xl" aria-hidden>
+              📷
+            </span>
+            <span className="text-2xl font-bold">사진 찍기</span>
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={onPick}
+            className="hidden"
+          />
+        </>
+      )}
+
+      {(stage === "uploading" || stage === "waiting") && (
+        <div className="flex flex-col items-center gap-6" aria-live="polite">
+          <div className="h-20 w-20 animate-spin rounded-full border-8 border-neutral-200 border-t-[#1a4f8b]" />
+          <p className="text-center text-2xl font-semibold leading-relaxed">
+            {stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}
+          </p>
+        </div>
+      )}
+
+      {stage === "error" && (
+        <div className="flex flex-col items-center gap-6">
+          <p className="text-center text-2xl font-semibold leading-relaxed">
+            잠시 문제가 있었어요
+          </p>
+          <button
+            onClick={() => setStage("idle")}
+            className="rounded-2xl bg-[#1a4f8b] px-8 py-5 text-2xl font-bold text-white"
+          >
+            다시 찍기
+          </button>
+        </div>
+      )}
     </main>
   );
 }
