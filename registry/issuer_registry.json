@@ -1,0 +1,115 @@
+{
+  "$schema_note": "공식 연락처·도메인 레지스트리. 값은 각 기관 공식 페이지에서 직접 확인한 것만 기록한다. 미등록 기관은 unknown_issuer.",
+  "version": "2026-08-22.1",
+  "coverage_note": "4개 기관 시범 적용. 전국 공공기관을 지원하지 않는다.",
+  "issuers": [
+    {
+      "issuer_id": "nhis",
+      "display_name": "국민건강보험공단",
+      "aliases": [
+        "국민건강보험공단",
+        "건강보험공단",
+        "국민건강보험",
+        "NHIS",
+        "National Health Insurance Service"
+      ],
+      "official_hosts": [
+        "www.nhis.or.kr",
+        "nhis.or.kr"
+      ],
+      "official_phones": [
+        "1577-1000"
+      ],
+      "source_urls": [
+        "https://www.nhis.or.kr/nhis/etc/wbhaze01100m01.do"
+      ],
+      "verified_at": "2026-08-22",
+      "doc_types": [
+        "건강보험료",
+        "장기요양보험료"
+      ]
+    },
+    {
+      "issuer_id": "mohw",
+      "display_name": "보건복지부 (보건복지상담센터)",
+      "aliases": [
+        "보건복지부",
+        "보건복지상담센터",
+        "복지부",
+        "Ministry of Health and Welfare"
+      ],
+      "official_hosts": [
+        "www.mohw.go.kr",
+        "mohw.go.kr",
+        "www.129.go.kr",
+        "129.go.kr",
+        "www.bokjiro.go.kr",
+        "bokjiro.go.kr"
+      ],
+      "official_phones": [
+        "129"
+      ],
+      "source_urls": [
+        "https://www.129.go.kr/counsel/counsel01.jsp",
+        "https://www.mohw.go.kr/"
+      ],
+      "verified_at": "2026-08-22",
+      "doc_types": [
+        "복지 신청 안내",
+        "기초연금 안내"
+      ]
+    },
+    {
+      "issuer_id": "nps",
+      "display_name": "국민연금공단",
+      "aliases": [
+        "국민연금공단",
+        "국민연금",
+        "NPS",
+        "National Pension Service"
+      ],
+      "official_hosts": [
+        "www.nps.or.kr",
+        "nps.or.kr"
+      ],
+      "official_phones": [
+        "1355"
+      ],
+      "source_urls": [
+        "https://www.nps.or.kr/jsppage/nps_gate.jsp"
+      ],
+      "verified_at": "2026-08-22",
+      "doc_types": [
+        "국민연금",
+        "기초연금 신청"
+      ]
+    },
+    {
+      "issuer_id": "kepco",
+      "display_name": "한국전력공사",
+      "aliases": [
+        "한국전력공사",
+        "한국전력",
+        "한전",
+        "KEPCO"
+      ],
+      "official_hosts": [
+        "cyber.kepco.co.kr",
+        "home.kepco.co.kr",
+        "kepco.co.kr"
+      ],
+      "official_phones": [
+        "123"
+      ],
+      "phone_note": "휴대전화에서는 지역번호+123",
+      "source_urls": [
+        "https://cyber.kepco.co.kr/ckepco/mobile/customer_support/find_branch.jsp"
+      ],
+      "verified_at": "2026-08-22",
+      "doc_types": [
+        "전기요금"
+      ]
+    }
+  ],
+  "pending": []
+}

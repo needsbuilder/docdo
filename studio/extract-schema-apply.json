@@ -1,0 +1,9 @@
+{ "name": "apply", "fields": [
+  {"key": "issuer",        "type": "string", "desc": "문서를 발급한 기관의 정식 명칭. 머리글의 기관명."},
+  {"key": "doc_title",     "type": "string", "desc": "문서 제목. 예: 기초연금 신청 안내"},
+  {"key": "apply_deadline","type": "string", "desc": "신청 기한. '신청 기한'·'접수 마감' 옆 날짜. 발송일과 혼동하지 말 것. YYYY-MM-DD로 정규화."},
+  {"key": "required_docs", "type": "string", "desc": "필요 서류 목록. 쉼표로 구분."},
+  {"key": "where_to_apply","type": "string", "desc": "접수처. 방문 장소 또는 온라인 접수 사이트."},
+  {"key": "contact_phone", "type": "string", "desc": "문의 전화번호. 여러 개면 첫 번째. 숫자와 하이픈만."},
+  {"key": "info_url",      "type": "string", "desc": "안내 홈페이지 주소(도메인)."}
+]}

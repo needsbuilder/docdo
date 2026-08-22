@@ -1,0 +1,7 @@
+{ "name": "info", "fields": [
+  {"key": "issuer",        "type": "string", "desc": "문서를 발급한 기관의 정식 명칭."},
+  {"key": "doc_title",     "type": "string", "desc": "문서 제목."},
+  {"key": "summary",       "type": "string", "desc": "문서의 요지를 한 문장으로."},
+  {"key": "contact_phone", "type": "string", "desc": "문의 전화번호. 숫자와 하이픈만."},
+  {"key": "info_url",      "type": "string", "desc": "안내 홈페이지 주소(도메인)."}
+]}

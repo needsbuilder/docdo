@@ -1,0 +1,10 @@
+{ "name": "pay", "fields": [
+  {"key": "issuer",        "type": "string", "desc": "문서를 발급한 기관의 정식 명칭. 상단 로고·머리글의 기관명. 지사명은 제외."},
+  {"key": "doc_title",     "type": "string", "desc": "문서 제목. 예: 건강보험료 납입고지서"},
+  {"key": "epn",           "type": "string", "desc": "전자납부번호. 숫자와 하이픈으로 된 19자리 번호. 고지번호와 혼동하지 말 것."},
+  {"key": "amount_krw",    "type": "number", "desc": "납부할 총 금액(원). '납부할 금액' 행의 값. 구성 항목 금액이 아닌 합계만."},
+  {"key": "issue_date",    "type": "string", "desc": "발행일. YYYY-MM-DD로 정규화."},
+  {"key": "due_date",      "type": "string", "desc": "납부기한. '납부기한' 또는 '납기내' 옆 날짜. 발행일과 혼동하지 말 것. YYYY-MM-DD로 정규화."},
+  {"key": "contact_phone", "type": "string", "desc": "문의 전화번호. 고객센터 번호. 숫자와 하이픈만."},
+  {"key": "info_url",      "type": "string", "desc": "안내 홈페이지 주소(도메인). 납부 방법에 나온 지로 사이트가 아니라 '문의' 행의 기관 홈페이지."}
+]}
