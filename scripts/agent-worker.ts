@@ -14,6 +14,7 @@
 
 import { chromium, type Page } from "playwright";
 import { readFileSync } from "node:fs";
+import { snapshot, decide, systemPrompt, type Snapshot } from "./agent-brain";
 
 function loadEnv() {
   try {
@@ -30,6 +31,18 @@ loadEnv();
 const BASE = process.env.DOCDO_URL ?? "http://localhost:3000";
 const SECRET = process.env.AGENT_SECRET ?? "";
 const ADAPTER = process.env.AGENT_ADAPTER ?? "demo";
+// llm: Solar Pro 4 가 화면 구조를 읽고 행동을 고른다(기본). script: 기관별 고정 절차(폴백).
+const MODE = process.env.AGENT_MODE ?? "llm";
+const UPSTAGE_KEY = process.env.UPSTAGE_API_KEY ?? "";
+const MAX_STEPS = 25;
+const SITES: Record<string, { url: string; hosts: string[] }> = {
+  demo: { url: `${process.env.DOCDO_URL ?? "http://localhost:3000"}/demo/giro`, hosts: [new URL(process.env.DOCDO_URL ?? "http://localhost:3000").host] },
+  giro: { url: "https://www.giro.or.kr/nomember/agreeNoMemberProvision.do", hosts: ["www.giro.or.kr", "giro.or.kr"] },
+};
+// 되돌릴 수 없는 버튼. 누르기 전에 화면에 문서 금액이 보여야 한다.
+const IRREVERSIBLE = /납부|결제|이체|송금|승인/;
+// 사람 차례 신호. 보이면 모델이 뭐라 하든 멈춘다.
+const HUMAN = /비밀번호|인증서|본인인증|보안\s*키패드|OTP|공동인증|금융인증|간편인증/;
 const HEADED = process.env.AGENT_HEADED === "1";
 const POLL_MS = 3000;
 const LIVE_MS = 700;
@@ -81,7 +94,14 @@ function startLive(page: Page, docId: string): () => void {
 
 /** 사람 차례. 보호자 폰에서 오는 터치·키 입력을 브라우저에 그대로 넣고, [이어서 하기]가 오면 돌아온다. */
 async function waitForHuman(page: Page, docId: string, reason: string, hint: string, mode: "remote" | "confirm" = "remote"): Promise<void> {
-  await api(`/api/agent/${docId}`, { wait: { reason, hint, mode }, step: { title: "보호자 차례 — " + reason, detail: hint } });
+  // 사람이 조작할 부분(인증·비밀번호)이 실시간 화면 안에 들어오게 스크롤한다. 터치 좌표는 화면 기준이다.
+  await page
+    .evaluate(
+      `(() => { const re = /비밀번호|인증서|본인인증|키패드|OTP|인증/; const els = Array.from(document.querySelectorAll("h1,h2,h3,h4,legend,label,p,div")); const el = els.find((e) => e.children.length < 12 && re.test(e.textContent || "")); if (el) el.scrollIntoView({ block: "start" }); })()`,
+    )
+    .catch(() => {});
+  await page.waitForTimeout(300);
+  await api(`/api/agent/${docId}`, { wait: { reason, hint, mode }, step: { title: "보호자 차례 — " + reason, detail: hint, shot: await shot(page).catch(() => undefined) } });
   const deadline = Date.now() + 10 * 60_000;
   while (Date.now() < deadline) {
     const r = await api(`/api/agent/${docId}`, { consumed: [] });
@@ -109,6 +129,95 @@ async function waitForHuman(page: Page, docId: string, reason: string, hint: str
   throw new Error("보호자 응답 없이 10분이 지났습니다");
 }
 
+const won = (n: number) => n.toLocaleString("ko-KR");
+function amountVisible(text: string, amount: number): boolean {
+  const a = won(amount);
+  return text.includes(a) || text.replace(/,/g, "").includes(String(amount));
+}
+
+/** Solar 가 화면을 읽고 행동을 고르는 루프. 가드레일은 여기(코드)에 있다. */
+async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: number, issuer: string | null,
+  step: (title: string, detail?: string, s?: string) => Promise<unknown>,
+  finish: (status: "done" | "blocked" | "failed", summary: string, extra?: Record<string, string>) => Promise<unknown>) {
+  const site = SITES[ADAPTER] ?? SITES.demo;
+  await page.goto(site.url, { waitUntil: "domcontentloaded", timeout: 60000 });
+  await page.waitForTimeout(800);
+  await step("사이트에 접속했습니다", site.url, await shot(page));
+
+  let messages: Parameters<typeof decide>[1] = [{ role: "system", content: systemPrompt({ label, issuer, epn, amount, site: site.url }) }];
+  let paid = false;
+  let lastSig = "";
+  let sameCount = 0;
+
+  for (let i = 1; i <= MAX_STEPS; i++) {
+    if (!site.hosts.includes(new URL(page.url()).host)) {
+      await step("허용된 사이트 밖으로 나가서 멈춥니다", page.url(), await shot(page));
+      return finish("blocked", "허용된 사이트 밖으로 이동해 멈췄습니다", { reason: "offsite" });
+    }
+    const snap: Snapshot = await snapshot(page);
+    const sig = snap.url + "|" + snap.refs.map((r) => r.role + r.name).join(",") + "|" + snap.text.slice(0, 300);
+    sameCount = sig === lastSig ? sameCount + 1 : 0;
+    lastSig = sig;
+    if (sameCount >= 3) return finish("failed", "화면이 바뀌지 않아 멈췄습니다", { reason: "stuck" });
+
+    // 가드 1: 사람 차례 신호가 보이면 모델을 부르지 않고 바로 넘긴다.
+    if (HUMAN.test(snap.text) && !paid) {
+      await page.evaluate("window.scrollBy(0, 240)");
+      await waitForHuman(page, doc.id, "본인 확인이 필요한 단계입니다", "비밀번호·인증은 독도가 입력하지 않습니다. 화면을 눌러 직접 마친 뒤 [이어서 하기]를 눌러 주세요.");
+      continue;
+    }
+
+    const { action, messages: next } = await decide(UPSTAGE_KEY, messages, snap, i);
+    messages = next;
+    const ref = "ref" in action ? snap.refs.find((r) => r.ref === action.ref) : undefined;
+    const why = "why" in action ? action.why : "";
+
+    if (action.kind === "abort") return finish("blocked", `에이전트가 멈췄습니다: ${action.reason}`, { reason: "abort" });
+    if (action.kind === "wait_human") {
+      await waitForHuman(page, doc.id, action.reason, action.hint);
+      continue;
+    }
+    if (action.kind === "done") {
+      if (!paid) return finish("blocked", "납부 단계 없이 끝내려 해서 멈췄습니다", { reason: "done_without_pay" });
+      await step("납부 완료를 확인했습니다", action.summary, await shot(page));
+      const rec = snap.text.match(/납부확인번호\s*([A-Z0-9-]+)/)?.[1] ?? "";
+      return finish("done", `${label} ${won(amount)}원 납부 완료${rec ? ` · 납부확인번호 ${rec}` : ""}`, rec ? { receipt: rec } : {});
+    }
+    if ((action.kind === "click" || action.kind === "type") && !ref) {
+      await step("모델이 없는 요소를 골라 건너뜁니다", `ref ${action.ref}`);
+      continue;
+    }
+    if (action.kind === "type" && ref) {
+      if (ref.type === "password") {
+        await waitForHuman(page, doc.id, "비밀번호 입력 단계입니다", "비밀번호는 독도가 입력하지 않습니다. 직접 입력한 뒤 [이어서 하기]를 눌러 주세요.");
+        continue;
+      }
+      await page.fill(ref.selector, action.text);
+      await step(`입력: ${ref.name || ref.role}`, `${action.text} — ${why}`);
+    } else if (action.kind === "click" && ref) {
+      // 가드 2: 되돌릴 수 없는 버튼은 화면에 문서 금액이 보일 때만.
+      if (IRREVERSIBLE.test(ref.name) && !amountVisible(snap.text, amount)) {
+        await step("금액 확인 없이 납부 버튼을 누르려 해서 멈춥니다", ref.name, await shot(page));
+        return finish("blocked", "화면에서 문서 금액을 확인하지 못해 납부를 멈췄습니다", { reason: "amount_not_visible" });
+      }
+      if (IRREVERSIBLE.test(ref.name)) {
+        await step("문서 금액이 화면에 보입니다 — 납부를 진행합니다", `${won(amount)}원 · ${ref.name}`, await shot(page));
+        paid = true;
+      }
+      await page.click(ref.selector).catch(async () => page.locator(ref.selector).click({ force: true }));
+      await step(`클릭: ${ref.name || ref.role}`, why, await shot(page));
+    } else if (action.kind === "press") {
+      await page.keyboard.press(action.key);
+      await step(`키: ${action.key}`, why);
+    } else if (action.kind === "scroll") {
+      await page.evaluate(`window.scrollBy(0, ${action.dir === "up" ? -480 : 480})`);
+      await step(`스크롤 ${action.dir === "up" ? "위" : "아래"}`, why);
+    }
+    await page.waitForTimeout(700);
+  }
+  return finish("failed", `${MAX_STEPS}단계 안에 끝내지 못했습니다`, { reason: "max_steps" });
+}
+
 async function run(doc: Doc) {
   const step = (title: string, detail?: string, s?: string) => api(`/api/agent/${doc.id}`, { step: { title, detail, shot: s } });
   const finish = (status: "done" | "blocked" | "failed", summary: string, extra: Record<string, string> = {}) =>
@@ -130,6 +239,11 @@ async function run(doc: Doc) {
   const page = await browser.newPage({ viewport: { width: 900, height: 640 }, locale: "ko-KR" });
   const stopLive = startLive(page, doc.id);
   try {
+    if (MODE === "llm") {
+      if (!UPSTAGE_KEY) return finish("failed", "UPSTAGE_API_KEY 없음");
+      const issuer = typeof f.issuer === "string" ? f.issuer : null;
+      return await runLLM(page, doc, label, epn, amount, issuer, step, finish);
+    }
     if (ADAPTER === "giro") {
       await page.goto("https://www.giro.or.kr/nomember/agreeNoMemberProvision.do", { waitUntil: "domcontentloaded", timeout: 60000 });
       await page.waitForTimeout(3000);
@@ -182,7 +296,7 @@ async function run(doc: Doc) {
 }
 
 async function main() {
-  console.log(`[agent] ${BASE} · adapter=${ADAPTER} · headed=${HEADED}`);
+  console.log(`[agent] ${BASE} · mode=${MODE} · adapter=${ADAPTER} · headed=${HEADED}`);
   for (;;) {
     try {
       const r = await api("/api/agent/claim", {});
