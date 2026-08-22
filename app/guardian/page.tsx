@@ -7,7 +7,8 @@ import type { Verdict } from "@/lib/types";
 import type { GuardianDoc } from "@/lib/dto";
 import CheckList from "@/components/CheckList";
 import BenefitHints from "@/components/BenefitHints";
-import { Phone, ArrowSquareOut, Tray, Envelope, Check } from "@/components/icons";
+import AppBar from "@/components/AppBar";
+import { Phone, ArrowSquareOut, Tray, Check } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
 // 보호자는 이메일+비밀번호로 가입한다. 가입하면 가구 하나와 어르신 초대 링크가 생긴다.
@@ -16,15 +17,21 @@ import { Phone, ArrowSquareOut, Tray, Envelope, Check } from "@/components/icons
 const LIST_MS = 3000;
 const DETAIL_MS = 3000;
 
+// 판정은 카드 왼쪽 세로 띠로 — 고지서의 머리띠가 목록에서는 옆으로 선다.
 const TONE: Record<string, string> = {
-  mismatch: "border-danger bg-danger-tint",
-  review: "border-warn bg-warn-tint",
-  unknown_issuer: "border-line bg-surface",
-  needs_human: "border-line bg-surface",
-  not_checkable: "border-line bg-surface",
-  failed: "border-line-soft bg-surface",
-  no_extract: "border-line-soft bg-surface",
-  clear: "border-line bg-surface",
+  mismatch: "border-l-danger",
+  review: "border-l-warn",
+  unknown_issuer: "border-l-line",
+  needs_human: "border-l-line",
+  not_checkable: "border-l-line",
+  failed: "border-l-line-soft",
+  no_extract: "border-l-line-soft",
+  clear: "border-l-ok",
+};
+const VERDICT_TONE: Record<string, string> = {
+  mismatch: "text-danger-ink",
+  review: "text-warn-ink",
+  clear: "text-ok-ink",
 };
 
 function money(v: unknown): string | null {
@@ -230,33 +237,34 @@ export default function Guardian() {
   }
 
   const Header = (
-    <header className="mb-6 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 text-brand">
-        <Envelope size={28} />
-        <h1 className="text-g-title text-ink">부모님 우편물</h1>
-      </div>
-      {me && (
-        <button type="button" onClick={logout} className="press min-h-tap rounded-control px-3 text-g-meta text-ink-soft active:bg-brand-tint">
-          로그아웃
-        </button>
-      )}
-    </header>
+    <AppBar
+      right={
+        me ? (
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate text-g-meta text-surface/75">{me.email}</span>
+            <button type="button" onClick={logout} className="on-brand min-h-tap shrink-0 rounded-control px-3 text-g-meta font-bold text-surface">
+              로그아웃
+            </button>
+          </div>
+        ) : undefined
+      }
+    />
   );
 
   if (auth === "checking") {
     return (
-      <main className="mx-auto max-w-2xl px-5 py-8">
+      <main className="mx-auto max-w-2xl px-5 pb-8">
         {Header}
-        <p className="text-g-body text-ink-soft">확인 중…</p>
+        <p className="mt-6 text-g-body text-ink-soft">확인 중…</p>
       </main>
     );
   }
 
   if (auth === "unconfigured") {
     return (
-      <main className="mx-auto max-w-2xl px-5 py-8">
+      <main className="mx-auto max-w-2xl px-5 pb-8">
         {Header}
-        <p className="text-g-body text-ink-mid">
+        <p className="mt-6 text-g-body text-ink-mid">
           서버에 <code>AUTH_SECRET</code> 이 설정되지 않았습니다.
         </p>
       </main>
@@ -265,12 +273,19 @@ export default function Guardian() {
 
   if (auth === "anon") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-8">
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-8">
         {Header}
-        <p className="mb-6 text-g-body text-ink-mid">
-          부모님 우편물을 대신 확인하는 화면입니다. 가입하면 부모님께 보낼 링크가 만들어집니다.
-        </p>
-        <div className="mb-4 flex rounded-control border-2 border-line bg-surface p-1" role="tablist">
+        <section className="mt-8">
+          <h1 className="text-balance text-[1.75rem] font-bold leading-[1.3] tracking-[-0.01em] text-ink">
+            부모님 우편물을
+            <br />
+            대신 확인합니다
+          </h1>
+          <p className="mt-3 text-g-body text-ink-mid">
+            부모님이 찍은 우편물이 여기로 옵니다. 읽은 내용, 공식 정보와 대조한 결과, 확인이 필요한 항목을 한 번에 봅니다.
+          </p>
+        </section>
+        <div className="mt-8 mb-5 flex border-b-2 border-ink" role="tablist">
           {(["login", "signup"] as const).map((m) => (
             <button
               key={m}
@@ -281,8 +296,8 @@ export default function Guardian() {
                 setMode(m);
                 setFormError("");
               }}
-              className={`press min-h-tap flex-1 rounded-inner text-g-body font-bold ${
-                mode === m ? "bg-brand text-surface" : "text-ink-mid"
+              className={`min-h-tap flex-1 text-g-body font-bold ${
+                mode === m ? "-mb-0.5 border-b-4 border-brand text-brand" : "text-ink-soft"
               }`}
             >
               {m === "login" ? "로그인" : "가입"}
@@ -303,7 +318,7 @@ export default function Guardian() {
             className="min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-title text-ink"
             required
           />
-          <label htmlFor="password" className="text-g-body font-bold text-ink">
+          <label htmlFor="password" className="mt-1 text-g-body font-bold text-ink">
             비밀번호 <span className="font-normal text-ink-soft">(8자 이상)</span>
           </label>
           <input
@@ -319,9 +334,9 @@ export default function Guardian() {
           <button
             type="submit"
             disabled={busy}
-            className="press on-brand mt-2 min-h-tap rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep disabled:opacity-60"
+            className="press on-brand mt-3 min-h-[3.5rem] rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep disabled:opacity-60"
           >
-            {busy ? "처리 중…" : mode === "signup" ? "가입하고 시작하기" : "로그인"}
+            {busy ? "처리 중…" : mode === "signup" ? "가입하고 링크 만들기" : "로그인"}
           </button>
           {formError && (
             <p className="text-g-body text-danger-ink" aria-live="polite">
@@ -336,12 +351,21 @@ export default function Guardian() {
   const attention = docs.filter((d) => d.result && NEEDS_ATTENTION.has(d.verdict ?? "") && d.resolution_status !== "done").length;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-8">
+    <main className="mx-auto max-w-2xl px-5 pb-8">
       {Header}
 
+      <div className="mt-6 mb-5 flex items-end justify-between gap-4">
+        <h1 className="text-[1.75rem] font-bold leading-[1.3] tracking-[-0.01em] text-ink">부모님 우편물</h1>
+        {docs.length > 0 && (
+          <p className="text-g-meta tabular-nums text-ink-mid">
+            확인 필요 <strong className="text-g-body text-ink">{attention}</strong> · 전체 <strong className="text-g-body text-ink">{docs.length}</strong>
+          </p>
+        )}
+      </div>
+
       {/* 어르신 초대 링크. 한 번만 보내면 된다 — 어르신 폰에 저장된다. */}
-      <section className="mb-6 rounded-card border-2 border-brand bg-brand-tint p-5">
-        <h2 className="text-g-body font-bold text-brand">부모님 폰에 보낼 링크</h2>
+      <section className="mb-6 rounded-card bg-well p-5">
+        <h2 className="text-g-body font-bold text-ink">부모님 폰에 보낼 링크</h2>
         <p className="mt-1 text-g-body text-ink-mid">
           부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.
         </p>
@@ -358,12 +382,6 @@ export default function Guardian() {
         </div>
       </section>
 
-      {docs.length > 0 && (
-        <p className="mb-5 text-g-body tabular-nums text-ink-mid">
-          확인 필요 <strong className="text-ink">{attention}</strong> · 전체 <strong className="text-ink">{docs.length}</strong>
-        </p>
-      )}
-
       <div className="space-y-5">
         {docs.map((d) => {
           const r = d.result;
@@ -378,16 +396,14 @@ export default function Guardian() {
           return (
             <article
               key={d.id}
-              className={`rounded-card border-2 p-5 shadow-card ${TONE[d.verdict ?? ""] ?? "border-line-soft bg-surface"}`}
+              className={`rounded-card border border-line-soft border-l-[6px] bg-surface p-5 shadow-card ${TONE[d.verdict ?? ""] ?? "border-l-line-soft"}`}
             >
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="min-w-0 text-g-title text-ink">{title}</h2>
-                {d.verdict && (
-                  <span className="shrink-0 text-g-body font-bold text-ink-mid">
-                    {VERDICT_LABEL[d.verdict as Verdict]}
-                  </span>
-                )}
-              </div>
+              {d.verdict && (
+                <p className={`text-g-meta font-bold ${VERDICT_TONE[d.verdict] ?? "text-ink-mid"}`}>
+                  {VERDICT_LABEL[d.verdict as Verdict]}
+                </p>
+              )}
+              <h2 className="mt-0.5 min-w-0 text-g-title text-ink">{title}</h2>
 
               {r && (issuer || amount || due) && (
                 <p className="mt-1 text-g-body text-ink-mid">
@@ -499,7 +515,7 @@ export default function Guardian() {
         })}
 
         {loaded && docs.length === 0 && (
-          <div className="flex flex-col items-center gap-3 rounded-card border-2 border-line-soft bg-surface px-6 py-12 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-card bg-well px-6 py-12 text-center">
             <span className="text-ink-soft">
               <Tray size={48} />
             </span>

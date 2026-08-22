@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "DocDo — 우편물을 읽어드립니다",
   description: "사진 한 장으로 우편물을 확인하고 자녀에게 전달합니다",
   manifest: "/manifest.json",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "DocDo" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "DocDo" },
 };
 
 export const viewport: Viewport = {
@@ -13,7 +13,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   // 확대를 막지 않는다. 저시력 어르신에게서 핀치 줌을 뺏으면 안 된다.
   // 상단바 색은 페이지 배경과 같아야 실기기에서 이음매가 안 보인다.
-  themeColor: "#faf8f4",
+  themeColor: "#123a69",
 };
 
 export default function RootLayout({

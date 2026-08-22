@@ -6,7 +6,8 @@ import { primeSpeech, speak } from "@/lib/speak";
 import { pollDocument, PollTimeout, type DocView } from "@/lib/poll";
 import { readElderToken, clearElderToken } from "@/lib/elderToken";
 import ElderResult from "@/components/ElderResult";
-import { Camera, Envelope } from "@/components/icons";
+import AppBar from "@/components/AppBar";
+import { Camera, Envelope, Scan } from "@/components/icons";
 
 type Stage = "idle" | "uploading" | "waiting" | "done" | "error";
 
@@ -165,84 +166,82 @@ export default function Elder() {
   // 링크 없이 열었다. 계정이 없으니 할 수 있는 게 없다 — 보호자에게 받아야 한다.
   if (token === null) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 px-6 py-10 text-center">
-        <span className="text-brand">
-          <Envelope size={56} />
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-10">
+        <AppBar size="lg" />
+        <span className="mt-8 inline-flex size-16 items-center justify-center rounded-inner bg-brand-tint text-brand">
+          <Envelope size={40} />
         </span>
-        <h1 className="text-balance text-lead text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
-        <p className="text-body text-ink-mid">
-          이 화면은 자녀분 계정과 연결돼야 합니다.
-          <br />
-          자녀분께 &ldquo;독도 링크&rdquo;를 보내 달라고 말씀해 주세요.
+        <h1 className="mt-5 text-balance text-value text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
+        <p className="mt-4 text-body text-ink-mid">
+          이 화면은 자녀분 계정과 연결돼야 합니다. 자녀분께 &ldquo;독도 링크&rdquo;를 보내 달라고 말씀해 주세요.
         </p>
       </main>
     );
   }
 
   if (stage === "done" && doc) {
-    return <ElderResult doc={doc} elderToken={token} onReset={reset} />;
+    return <ElderResult doc={doc} elderToken={token} preview={preview} onReset={reset} />;
   }
 
   const progress = Math.min(0.92, seconds / OBSERVED_MAX_S);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-10 px-6 py-10">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-10">
+      <AppBar size="lg" />
+
       {stage === "idle" && (
         <>
-          <h1 className="text-center text-lead text-ink">
-            우편물을
-            <br />
-            사진으로 찍어주세요
-          </h1>
+          <h1 className="mt-8 text-balance text-value text-ink">우편물을 사진으로 찍어 주세요</h1>
+          <p className="mt-3 text-body text-ink-mid">종이 전체가 한 장에 다 들어오게요.</p>
+
+          {/* 촬영 가이드. 어떻게 찍는지를 화면이 보여준다 — 설명 문장보다 빠르다. */}
+          <div aria-hidden="true" className="mt-6 flex aspect-[4/3] w-full items-center justify-center rounded-card bg-well">
+            <div className="relative h-[82%] w-[62%] overflow-hidden rounded-inner border-2 border-dashed border-brand bg-surface">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/samples/nhis-top.jpg" alt="" className="block h-full w-full object-cover object-left-top opacity-90" />
+              <span className="absolute right-1 top-1 rounded-inner bg-surface p-1 text-brand">
+                <Scan size={26} />
+              </span>
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={onShoot}
-            className="press on-brand flex h-56 w-56 flex-col items-center justify-center gap-3 rounded-full border-4 border-brand bg-brand text-surface shadow-raise active:bg-brand-deep"
+            className="press on-brand mt-6 flex min-h-[5.5rem] w-full items-center justify-center gap-4 rounded-card bg-brand px-6 text-surface shadow-raise active:bg-brand-deep"
           >
-            <Camera size={72} />
-            <span className="text-lead">사진 찍기</span>
+            <Camera size={44} />
+            <span className="text-value">사진 찍기</span>
           </button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={onPick}
-            className="hidden"
-          />
+          <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={onPick} className="hidden" />
+          <p className="mt-4 text-note text-ink-soft">찍은 사진은 자녀분 화면에도 함께 올라갑니다.</p>
         </>
       )}
 
       {(stage === "uploading" || stage === "waiting") && (
-        <div className="flex w-full flex-col items-center gap-6" aria-live="polite">
+        <div className="mt-8 flex w-full flex-col gap-5" aria-live="polite">
+          <h1 className="text-value text-ink">{stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}</h1>
           {preview && (
             // 찍은 사진 그대로. 결과와 무관하게 "이 종이"를 처리 중이라는 신호다.
-            <div className="w-full max-w-[22em] overflow-hidden rounded-card border-2 border-line bg-surface shadow-card">
+            <div className="w-full overflow-hidden rounded-card bg-well">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="방금 찍은 우편물" className="block max-h-[46dvh] w-full object-contain" />
+              <img src={preview} alt="방금 찍은 우편물" className="block max-h-[52dvh] w-full object-contain" />
             </div>
           )}
-          <div className="w-full max-w-[22em]">
-            <div className="h-3 w-full overflow-hidden rounded-chip border border-line bg-surface">
-              <div
-                className="h-full bg-brand transition-[width] duration-1000 ease-linear"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
-            </div>
+          <div className="h-3 w-full overflow-hidden rounded-chip bg-well">
+            <div className="h-full bg-brand transition-[width] duration-1000 ease-linear" style={{ width: `${Math.round(progress * 100)}%` }} />
           </div>
-          <p className="text-center text-lead text-ink">
-            {stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}
-          </p>
+          <p className="text-note text-ink-soft">보통 30초 안에 끝나요. 화면을 닫지 말고 기다려 주세요.</p>
         </div>
       )}
 
       {stage === "error" && (
-        <div className="flex flex-col items-center gap-6" aria-live="assertive">
-          <p className="text-center text-lead text-ink">{errorText}</p>
+        <div className="mt-8 flex flex-col gap-6" aria-live="assertive">
+          <h1 className="text-value text-ink">{errorText}</h1>
           <button
             type="button"
             onClick={reset}
-            className="press on-brand min-h-tap-elder rounded-control border-2 border-brand bg-brand px-8 text-lead text-surface active:bg-brand-deep"
+            className="press on-brand min-h-tap-elder rounded-control bg-brand px-8 text-lead text-surface active:bg-brand-deep"
           >
             다시 찍기
           </button>
