@@ -343,10 +343,16 @@ Classify 타입과 Extract 스키마는 **Export as JSON** 이 되고 다른 에
 
 ```
 response.output[]
-  .model                        "step_1_parse" | "step_2_classify" | ...
+  .model                        "step_1_parse" | "step_2_classify" | "Information Extract - Extract-1" | ...
+                                ※ 실측(2026-08-22): Extract는 step_N 형식이 아니다. 정규식으로 잡는다.
   .content[].text               ← 문자열로 직렬화된 JSON. JSON.parse 필요
-  .content[].additional_values  ← confidence 등. 별도로 JSON.parse 필요
+  .content[].additional_values  ← 실측: 이미 객체로 온다(문자열 아님). 문자열이면 JSON.parse.
+                                   previous_step_name / step_run_id / cache_hit +
+                                   Extract: 필드별 {_value, confidence: high|low, page, coordinates[4], word_coordinates}
+                                   Classify: document_type {_value, confidence_score(0~1), confidence(high|low)}, hierarchy {leaf, path, depth}
 ```
+
+**미매핑 타입은 Extract 단계가 응답에서 통째로 빠진다** (빈 결과가 아님). 파서는 "단계 없음"을 정상 경로로 다룬다.
 
 **규칙**
 
@@ -356,6 +362,7 @@ response.output[]
 3. 필요한 단계가 없으면 **실패 처리**한다. 조용히 넘어가지 않는다.
 4. **`config_id` 를 고정한다.** 생략하면 Studio의 **최신** 설정이 호출된다.
    발표 직전 누가 캔버스를 만지면 데모 동작이 바뀐다.
+   실측: **초안(draft)은 API에서 아예 안 보인다** (`No default config found`). 헤더 `설정 #N 초안 ▾ → 저장` 해야 호출 가능.
 5. 상태값은 **`queued` / `in_progress` / `completed` / `failed`**.
 6. **`failed` 는 종결 상태다.** 같은 `job_id` 재조회로는 안 된다 — 새 job을 만든다.
 
