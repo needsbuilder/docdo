@@ -37,9 +37,18 @@ export type DocRow = {
   approved_at: string | null;
   // 실행 중 최신 화면(JPEG data URL). 보호자 폰에 실시간으로 보여준다. 끝나면 null.
   action_live: string | null;
+  // 사람 개입. waiting 상태의 이유·안내, 그리고 보호자 폰에서 온 입력 큐(워커가 꺼내 쓴다).
+  action_wait: ActionWait | null;
+  action_inputs: AgentInput[];
 };
 
-export type ActionStatus = "none" | "queued" | "running" | "done" | "blocked" | "failed";
+export type ActionStatus = "none" | "queued" | "running" | "waiting" | "done" | "blocked" | "failed";
+export type ActionWait = { reason: string; hint: string; mode: "remote" | "confirm" };
+export type AgentInput =
+  | { id: string; kind: "tap"; x: number; y: number }
+  | { id: string; kind: "type"; text: string }
+  | { id: string; kind: "key"; key: string }
+  | { id: string; kind: "resume" };
 export type TraceStep = { t: string; title: string; detail?: string; shot?: string };
 export type ActionResult = { summary: string; receipt?: string; reason?: string };
 
@@ -102,7 +111,7 @@ function supabase(): SupabaseClient {
 }
 
 const COLUMNS =
-  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at, action_live";
+  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at, action_live, action_wait, action_inputs";
 const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at";
 
 async function gOne(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Guardian | null> {
@@ -256,6 +265,8 @@ const fileStore: DocStore = {
         action_result: null,
         approved_at: null,
         action_live: null,
+        action_wait: null,
+        action_inputs: [],
         ...doc,
       };
       rows.push(row);

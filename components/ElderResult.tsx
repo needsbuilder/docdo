@@ -94,7 +94,7 @@ export default function ElderResult({
   const status =
     cur.action_status === "done"
       ? { icon: CheckCircle, text: cur.action_summary ? `처리됐어요 — ${cur.action_summary}` : "처리됐어요", cls: "bg-ok-tint text-ok-ink" }
-      : cur.action_status === "running" || cur.action_status === "queued"
+      : cur.action_status === "running" || cur.action_status === "queued" || cur.action_status === "waiting"
         ? { icon: Eye, text: "자녀분이 승인해서 처리하고 있어요", cls: "bg-brand-tint text-brand" }
       : cur.resolution_status === "done"
       ? { icon: CheckCircle, text: "자녀분이 처리했어요", cls: "bg-ok-tint text-ok-ink" }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { store, type DocPatch, type DocRow } from "@/lib/store";
+import { store, type DocPatch, type DocRow, type AgentInput } from "@/lib/store";
 import { fetchJob, deleteFile } from "@/lib/upstage";
 import { verify } from "@/lib/verify";
 import { buildPhrases } from "@/lib/phrase";
@@ -113,8 +113,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   let resolution: unknown;
   let action: unknown;
+  let input: unknown;
   try {
-    ({ resolution, action } = await req.json());
+    ({ resolution, action, input } = await req.json());
   } catch {
     return json({ error: "JSON 형식이 아닙니다" }, 400);
   }
@@ -137,6 +138,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       resolution_status: doc.resolution_status === "new" ? "acknowledged" : doc.resolution_status,
       reviewed_at: doc.reviewed_at ?? new Date().toISOString(),
     });
+    return json(toGuardianDoc(data ?? doc));
+  }
+  // 보호자 폰에서 온 원격 입력(터치·키·이어서 하기). 에이전트가 멈춰 있거나 도는 중일 때만 받는다.
+  if (input && typeof input === "object") {
+    if (doc.action_status !== "waiting" && doc.action_status !== "running") return json({ error: "에이전트가 대기 중이 아닙니다" }, 409);
+    const i = input as Record<string, unknown>;
+    const id2 = crypto.randomUUID();
+    let item: AgentInput | null = null;
+    if (i.kind === "tap" && typeof i.x === "number" && typeof i.y === "number") item = { id: id2, kind: "tap", x: Math.round(i.x), y: Math.round(i.y) };
+    else if (i.kind === "type" && typeof i.text === "string" && i.text.length <= 200) item = { id: id2, kind: "type", text: i.text };
+    else if (i.kind === "key" && typeof i.key === "string" && /^[A-Za-z]{2,12}$/.test(i.key)) item = { id: id2, kind: "key", key: i.key };
+    else if (i.kind === "resume") item = { id: id2, kind: "resume" };
+    if (!item) return json({ error: "잘못된 입력" }, 400);
+    const queue = [...(doc.action_inputs ?? []), item].slice(-50);
+    const data = await db.update(id, { action_inputs: queue });
     return json(toGuardianDoc(data ?? doc));
   }
   if (typeof resolution !== "string") return json({ error: "잘못된 값" }, 400);

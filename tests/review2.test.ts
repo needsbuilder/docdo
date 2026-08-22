@@ -234,6 +234,8 @@ describe("#1 DTO — 어르신 응답에는 원문이 없다", () => {
     action_result: null,
     approved_at: null,
     action_live: null,
+    action_wait: null,
+    action_inputs: [],
   };
 
   it("어르신 응답에 fields·checks·upstage id 가 없다", () => {

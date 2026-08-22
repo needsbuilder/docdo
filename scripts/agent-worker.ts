@@ -35,6 +35,12 @@ const POLL_MS = 3000;
 const LIVE_MS = 700;
 if (!SECRET) throw new Error("AGENT_SECRET 없음");
 
+type AgentInput =
+  | { id: string; kind: "tap"; x: number; y: number }
+  | { id: string; kind: "type"; text: string }
+  | { id: string; kind: "key"; key: string }
+  | { id: string; kind: "resume" };
+
 type Doc = {
   id: string;
   verdict: string | null;
@@ -73,6 +79,36 @@ function startLive(page: Page, docId: string): () => void {
   };
 }
 
+/** 사람 차례. 보호자 폰에서 오는 터치·키 입력을 브라우저에 그대로 넣고, [이어서 하기]가 오면 돌아온다. */
+async function waitForHuman(page: Page, docId: string, reason: string, hint: string, mode: "remote" | "confirm" = "remote"): Promise<void> {
+  await api(`/api/agent/${docId}`, { wait: { reason, hint, mode }, step: { title: "보호자 차례 — " + reason, detail: hint } });
+  const deadline = Date.now() + 10 * 60_000;
+  while (Date.now() < deadline) {
+    const r = await api(`/api/agent/${docId}`, { consumed: [] });
+    const { inputs = [] } = (await r.json().catch(() => ({}))) as { inputs?: AgentInput[] };
+    const consumed: string[] = [];
+    let resume = false;
+    for (const i of inputs) {
+      consumed.push(i.id);
+      try {
+        if (i.kind === "tap") await page.mouse.click(i.x, i.y);
+        else if (i.kind === "type") await page.keyboard.type(i.text, { delay: 40 });
+        else if (i.kind === "key") await page.keyboard.press(i.key);
+        else if (i.kind === "resume") resume = true;
+      } catch (e) {
+        console.error("[agent] 입력 실패", e instanceof Error ? e.message : e);
+      }
+    }
+    if (consumed.length) await api(`/api/agent/${docId}`, { consumed });
+    if (resume) {
+      await api(`/api/agent/${docId}`, { status: "running", step: { title: "보호자가 넘겨줘서 이어서 진행합니다" } });
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error("보호자 응답 없이 10분이 지났습니다");
+}
+
 async function run(doc: Doc) {
   const step = (title: string, detail?: string, s?: string) => api(`/api/agent/${doc.id}`, { step: { title, detail, shot: s } });
   const finish = (status: "done" | "blocked" | "failed", summary: string, extra: Record<string, string> = {}) =>
@@ -98,8 +134,9 @@ async function run(doc: Doc) {
       await page.goto("https://www.giro.or.kr/nomember/agreeNoMemberProvision.do", { waitUntil: "domcontentloaded", timeout: 60000 });
       await page.waitForTimeout(3000);
       await step("인터넷지로 비회원 납부 서비스에 접속했습니다", page.url(), await shot(page));
-      await step("금융인증서가 필요한 단계에 도달했습니다", "비회원 서비스도 금융인증서·공동인증서로만 진행됩니다. 인증은 사람이 해야 합니다.", await shot(page));
-      return finish("blocked", "인터넷지로는 본인 인증서가 있어야 조회·납부가 됩니다. 인증 단계에서 멈췄습니다.", { reason: "auth_required" });
+      await waitForHuman(page, doc.id, "인증서 확인이 필요합니다", "인터넷지로는 금융인증서·공동인증서로만 진행됩니다. 화면을 눌러 직접 인증을 마친 뒤 [이어서 하기]를 눌러 주세요.");
+      await step("인증 이후 화면입니다", page.url(), await shot(page));
+      return finish("blocked", "인터넷지로 어댑터는 인증 이후 단계(조회·납부)가 아직 구현되지 않았습니다.", { reason: "giro_wip" });
     }
 
     // demo 어댑터
@@ -124,6 +161,11 @@ async function run(doc: Doc) {
     await page.check("#method-card");
     await step("납부수단을 선택했습니다", "신용카드", await shot(page));
     await page.click("#pay");
+    await page.waitForSelector("#auth", { timeout: 15000 });
+    await page.locator("#auth").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await step("본인인증 화면입니다 — 비밀번호는 에이전트가 입력하지 않습니다", "보안 키패드 6자리", await shot(page));
+    await waitForHuman(page, doc.id, "인증서 비밀번호를 직접 눌러 주세요", "아래 화면의 키패드를 눌러 6자리를 입력하고 [확인]까지 누른 뒤 [이어서 하기]를 눌러 주세요.");
     await page.waitForSelector("#receipt", { timeout: 15000 });
     const receipt = (await page.textContent("#receipt-no"))?.trim() ?? "";
     await step("납부가 완료되었습니다", `납부확인번호 ${receipt}`, await shot(page));

@@ -40,10 +40,12 @@ export default function GuardianCard({
   doc: d,
   onMark,
   onApprove,
+  onInput,
 }: {
   doc: GuardianDoc;
   onMark: (id: string, resolution: "acknowledged" | "done") => void;
   onApprove: (id: string) => void;
+  onInput: (id: string, input: Record<string, unknown>) => void;
 }) {
   const r = d.result;
   const [open, setOpen] = useState(r?.verdict === "mismatch");
@@ -67,7 +69,7 @@ export default function GuardianCard({
   const canApprove =
     !!r && d.verdict !== "mismatch" && conf2.epn === "high" && typeof f.epn === "string" && !!amount &&
     (d.action_status === "none" || d.action_status === "failed" || d.action_status === "blocked");
-  const agentActive = d.action_status === "queued" || d.action_status === "running";
+  const agentActive = d.action_status === "queued" || d.action_status === "running" || d.action_status === "waiting";
 
   return (
     <article className={`rounded-card border border-line-soft border-l-[6px] bg-surface p-5 shadow-card ${RAIL[d.verdict ?? ""] ?? "border-l-line"} ${done ? "opacity-70" : ""}`}>
@@ -155,7 +157,7 @@ export default function GuardianCard({
       )}
 
       {/* 에이전트 */}
-      {d.action_status !== "none" && <AgentTrace status={d.action_status} trace={d.action_trace ?? []} result={d.action_result} live={d.action_live} />}
+      {d.action_status !== "none" && <AgentTrace status={d.action_status} trace={d.action_trace ?? []} result={d.action_result} live={d.action_live} wait={d.action_wait} onInput={(input) => onInput(d.id, input)} />}
 
       {/* 행동 */}
       {r && (
@@ -169,7 +171,7 @@ export default function GuardianCard({
               {d.action_status === "none" ? `납부 처리 승인 · ${amount}` : "다시 처리 승인"}
             </button>
           )}
-          {agentActive && (
+          {agentActive && d.action_status !== "waiting" && (
             <span className="flex min-h-tap items-center text-g-body text-ink-mid">독도가 처리 중입니다…</span>
           )}
           {confirm ? (

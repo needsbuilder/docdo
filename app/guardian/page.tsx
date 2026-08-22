@@ -184,7 +184,7 @@ export default function Guardian() {
   // 에이전트가 돌고 있는 문서는 1초마다 따로 받아 실시간 화면·단계를 그린다.
   useEffect(() => {
     if (auth !== "ok") return;
-    const running = docs.filter((d) => d.action_status === "running" || d.action_status === "queued");
+    const running = docs.filter((d) => d.action_status === "running" || d.action_status === "queued" || d.action_status === "waiting");
     if (!running.length) return;
     const ac = new AbortController();
     const t = setInterval(() => {
@@ -203,6 +203,18 @@ export default function Guardian() {
       clearInterval(t);
     };
   }, [auth, docs]);
+
+  async function sendInput(id: string, input: Record<string, unknown>) {
+    try {
+      await fetch(`/api/documents/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input }),
+      });
+    } catch {
+      /* 다음 폴링이 진실이다 */
+    }
+  }
 
   async function approve(id: string) {
     try {
@@ -387,7 +399,7 @@ export default function Guardian() {
 
       <div className="space-y-5">
         {docs.map((d) => (
-          <GuardianCard key={d.id} doc={d} onMark={mark} onApprove={approve} />
+          <GuardianCard key={d.id} doc={d} onMark={mark} onApprove={approve} onInput={sendInput} />
         ))}
 
         {loaded && docs.length === 0 && (

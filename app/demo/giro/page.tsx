@@ -13,6 +13,9 @@ export default function DemoGiro() {
   const [err, setErr] = useState("");
   const [method, setMethod] = useState<"card" | "account">("card");
   const [receipt, setReceipt] = useState<{ receipt: string; paidAt: string } | null>(null);
+  // 본인인증 흉내. 실제 인증서 PIN 처럼 6자리를 키패드로 받는다(어떤 숫자든 통과). 에이전트는 이 화면을 넘지 못한다.
+  const [authing, setAuthing] = useState(false);
+  const [pin, setPin] = useState("");
 
   async function lookup(e: React.FormEvent) {
     e.preventDefault();
@@ -23,8 +26,13 @@ export default function DemoGiro() {
     if (!r.ok) return setErr("전자납부번호를 찾을 수 없습니다");
     setBill(((await r.json()) as { bill: Bill }).bill);
   }
+  function startAuth() {
+    setAuthing(true);
+    setPin("");
+  }
   async function pay() {
-    if (!bill) return;
+    if (!bill || pin.length !== 6) return;
+    setAuthing(false);
     const r = await fetch("/api/demo/giro", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ epn: bill.epn, method }) });
     if (r.ok) setReceipt((await r.json()) as { receipt: string; paidAt: string });
   }
@@ -79,9 +87,30 @@ export default function DemoGiro() {
               <label className="flex items-center gap-2"><input id="method-account" type="radio" name="method" checked={method === "account"} onChange={() => setMethod("account")} /> 계좌이체</label>
             </div>
           </fieldset>
-          <button id="pay" type="button" onClick={pay} className="mt-5 h-12 w-full rounded bg-[#2e6bd6] text-lg font-bold text-white">
-            {bill.amount.toLocaleString("ko-KR")}원 납부하기
-          </button>
+          {!authing ? (
+            <button id="pay" type="button" onClick={startAuth} className="mt-5 h-12 w-full rounded bg-[#2e6bd6] text-lg font-bold text-white">
+              {bill.amount.toLocaleString("ko-KR")}원 납부하기
+            </button>
+          ) : (
+            <div id="auth" className="mt-5 rounded-lg border-2 border-[#2e6bd6] bg-[#f4f7fc] p-5">
+              <h3 className="text-base font-bold">본인인증 · 인증서 비밀번호 6자리</h3>
+              <p className="mt-1 text-sm text-[#666]">보안 키패드입니다. 본인이 직접 입력해 주세요. (시연용 — 어떤 숫자든 통과)</p>
+              <p id="pin-dots" className="mt-3 text-center text-2xl tracking-[0.5em]">{"●".repeat(pin.length)}{"○".repeat(6 - pin.length)}</p>
+              <div className="mx-auto mt-3 grid w-60 grid-cols-3 gap-2">
+                {["1","2","3","4","5","6","7","8","9","지움","0","확인"].map((k) => (
+                  <button
+                    key={k}
+                    id={k === "확인" ? "auth-ok" : k === "지움" ? "auth-del" : `k${k}`}
+                    type="button"
+                    onClick={() => (k === "확인" ? pay() : k === "지움" ? setPin((p) => p.slice(0, -1)) : setPin((p) => (p.length < 6 ? p + k : p)))}
+                    className={`h-12 rounded border text-lg font-bold ${k === "확인" ? "border-[#2e6bd6] bg-[#2e6bd6] text-white" : "border-[#bbb] bg-white"}`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       )}
 

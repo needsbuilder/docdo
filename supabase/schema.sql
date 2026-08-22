@@ -59,3 +59,7 @@ create index if not exists documents_action_queue_idx on documents (action_statu
 
 -- 실시간 송출: 워커가 올리는 최신 화면(JPEG data URL). 실행 중에만 값이 있고 끝나면 비운다.
 alter table documents add column if not exists action_live text;
+
+-- 사람 개입(2026-08-23). action_wait: 멈춘 이유·안내. action_inputs: 보호자 폰에서 온 터치·키 입력 큐(워커가 소비).
+alter table documents add column if not exists action_wait jsonb;
+alter table documents add column if not exists action_inputs jsonb not null default '[]'::jsonb;
