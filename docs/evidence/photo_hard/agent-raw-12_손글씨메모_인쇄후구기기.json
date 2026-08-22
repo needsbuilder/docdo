@@ -1,0 +1,114 @@
+{
+  "id": "job_jZZ9e3zmhXy4um5dePmjnV",
+  "object": "response",
+  "created_at": 1787409267,
+  "status": "completed",
+  "background": false,
+  "error": null,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": null,
+  "model": "agt_PNZaixnk4TZxkDg5muEJQi",
+  "output": [
+    {
+      "id": "5d216e2c-108b-5b88-b720-551455c50c5f",
+      "type": "message",
+      "status": "completed",
+      "created_at": 1787409268,
+      "updated_at": 1787409271,
+      "is_deleted": false,
+      "model": "step_1_parse",
+      "response_id": null,
+      "db_type": null,
+      "raw_content": null,
+      "content_parsed": null,
+      "task": null,
+      "sources_raw": null,
+      "sources": null,
+      "additional_values_raw": null,
+      "additional_values": null,
+      "llm": null,
+      "tool_call_id": null,
+      "tool_calls_raw": null,
+      "tool_calls": null,
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "{\"api\": \"2.0\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"0\\\" style=\\\"font-size:22px\\\">8월 20일 (목)</p>\\n<br/><p data-category=\\\"paragraph\\\" id=\\\"1\\\" style=\\\"font-size:16px\\\">경로당 회비 3만원</p>\\n<p data-category=\\\"paragraph\\\" id=\\\"2\\\" style=\\\"font-size:14px\\\">김씨 아저씨한테 전화</p>\\n<p data-category=\\\"paragraph\\\" id=\\\"3\\\" style=\\\"font-size:16px\\\">약 타러 병원</p>\\n<br/><p data-category=\\\"paragraph\\\" id=\\\"4\\\" style=\\\"font-size:14px\\\">-</p>\\n<br/><p data-category=\\\"paragraph\\\" id=\\\"5\\\" style=\\\"font-size:20px\\\">수요일 오전</p>\\n<p data-category=\\\"paragraph\\\" id=\\\"6\\\" style=\\\"font-size:20px\\\">며느리 생일 9월 2일</p>\\n<p data-category=\\\"paragraph\\\" id=\\\"7\\\" style=\\\"font-size:16px\\\">문 앞 택배 확인할 것</p>\\n<p data-category=\\\"paragraph\\\" id=\\\"8\\\" style=\\\"font-size:18px\\\">전기세 냈나? 확인</p>\", \"markdown\": \"\", \"text\": \"8월 20일 (목)\\n경로당 회비 3만원\\n김씨 아저씨한테 전화\\n약 타러 병원\\n-\\n수요일 오전\\n며느리 생일 9월 2일\\n문 앞 택배 확인할 것\\n전기세 냈나? 확인\"}, \"elements\": [{\"id\": 0, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"0\\\" style=\\\"font-size:22px\\\">8월 20일 (목)</p>\", \"markdown\": \"\", \"text\": \"8월 20일 (목)\"}, \"coordinates\": [{\"x\": 0.1017, \"y\": 0.0824}, {\"x\": 0.2683, \"y\": 0.0782}, {\"x\": 0.27, \"y\": 0.112}, {\"x\": 0.1034, \"y\": 0.1163}], \"words\": [{\"text\": \"8월\", \"confidence\": 0.9988, \"coordinates\": [{\"x\": 0.1048, \"y\": 0.0849}, {\"x\": 0.147, \"y\": 0.0841}, {\"x\": 0.1482, \"y\": 0.1122}, {\"x\": 0.1059, \"y\": 0.1131}]}, {\"text\": \"20일\", \"confidence\": 0.9978, \"coordinates\": [{\"x\": 0.1528, \"y\": 0.0838}, {\"x\": 0.2108, \"y\": 0.0821}, {\"x\": 0.2125, \"y\": 0.11}, {\"x\": 0.1545, \"y\": 0.1118}]}, {\"text\": \"(목)\", \"confidence\": 0.996, \"coordinates\": [{\"x\": 0.2177, \"y\": 0.0811}, {\"x\": 0.2615, \"y\": 0.0797}, {\"x\": 0.2635, \"y\": 0.1083}, {\"x\": 0.2196, \"y\": 0.1097}]}]}, {\"id\": 1, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<br/><p data-category=\\\"paragraph\\\" id=\\\"1\\\" style=\\\"font-size:16px\\\">경로당 회비 3만원</p>\", \"markdown\": \"\", \"text\": \"경로당 회비 3만원\"}, \"coordinates\": [{\"x\": 0.1221, \"y\": 0.1349}, {\"x\": 0.3409, \"y\": 0.1293}, {\"x\": 0.3426, \"y\": 0.1623}, {\"x\": 0.1238, \"y\": 0.1678}], \"words\": [{\"text\": \"경로당\", \"confidence\": 0.9942, \"coordinates\": [{\"x\": 0.1263, \"y\": 0.1414}, {\"x\": 0.2004, \"y\": 0.1383}, {\"x\": 0.2022, \"y\": 0.1604}, {\"x\": 0.1282, \"y\": 0.1635}]}, {\"text\": \"회비\", \"confidence\": 0.9935, \"coordinates\": [{\"x\": 0.2089, \"y\": 0.1354}, {\"x\": 0.2594, \"y\": 0.1352}, {\"x\": 0.2596, \"y\": 0.1588}, {\"x\": 0.2091, \"y\": 0.1591}]}, {\"text\": \"3만원\", \"confidence\": 0.9946, \"coordinates\": [{\"x\": 0.2666, \"y\": 0.1387}, {\"x\": 0.3374, \"y\": 0.1374}, {\"x\": 0.3383, \"y\": 0.1596}, {\"x\": 0.2675, \"y\": 0.161}]}]}, {\"id\": 2, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"2\\\" style=\\\"font-size:14px\\\">김씨 아저씨한테 전화</p>\", \"markdown\": \"\", \"text\": \"김씨 아저씨한테 전화\"}, \"coordinates\": [{\"x\": 0.111, \"y\": 0.1883}, {\"x\": 0.3798, \"y\": 0.1814}, {\"x\": 0.3815, \"y\": 0.2152}, {\"x\": 0.1126, \"y\": 0.222}], \"words\": [{\"text\": \"김씨\", \"confidence\": 0.9894, \"coordinates\": [{\"x\": 0.1155, \"y\": 0.1981}, {\"x\": 0.1658, \"y\": 0.1953}, {\"x\": 0.1682, \"y\": 0.2163}, {\"x\": 0.1178, \"y\": 0.2191}]}, {\"text\": \"아저씨한테\", \"confidence\": 0.9877, \"coordinates\": [{\"x\": 0.1744, \"y\": 0.1966}, {\"x\": 0.3095, \"y\": 0.1902}, {\"x\": 0.3114, \"y\": 0.2108}, {\"x\": 0.1764, \"y\": 0.2171}]}, {\"text\": \"전화\", \"confidence\": 0.9971, \"coordinates\": [{\"x\": 0.3171, \"y\": 0.1894}, {\"x\": 0.373, \"y\": 0.1844}, {\"x\": 0.3771, \"y\": 0.2073}, {\"x\": 0.3211, \"y\": 0.2123}]}]}, {\"id\": 3, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"3\\\" style=\\\"font-size:16px\\\">약 타러 병원</p>\", \"markdown\": \"\", \"text\": \"약 타러 병원\"}, \"coordinates\": [{\"x\": 0.105, \"y\": 0.2528}, {\"x\": 0.2793, \"y\": 0.2484}, {\"x\": 0.2812, \"y\": 0.285}, {\"x\": 0.1068, \"y\": 0.2894}], \"words\": [{\"text\": \"약\", \"confidence\": 0.9905, \"coordinates\": [{\"x\": 0.1104, \"y\": 0.2558}, {\"x\": 0.1443, \"y\": 0.2556}, {\"x\": 0.1445, \"y\": 0.2792}, {\"x\": 0.1106, \"y\": 0.2793}]}, {\"text\": \"타러\", \"confidence\": 0.9601, \"coordinates\": [{\"x\": 0.152, \"y\": 0.2589}, {\"x\": 0.2089, \"y\": 0.2586}, {\"x\": 0.2091, \"y\": 0.2771}, {\"x\": 0.1522, \"y\": 0.2773}]}, {\"text\": \"병원\", \"confidence\": 0.9928, \"coordinates\": [{\"x\": 0.2175, \"y\": 0.2585}, {\"x\": 0.2754, \"y\": 0.2583}, {\"x\": 0.2757, \"y\": 0.2821}, {\"x\": 0.2178, \"y\": 0.2823}]}]}, {\"id\": 4, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<br/><p data-category=\\\"paragraph\\\" id=\\\"4\\\" style=\\\"font-size:14px\\\">-</p>\", \"markdown\": \"\", \"text\": \"-\"}, \"coordinates\": [{\"x\": 0.2803, \"y\": 0.2659}, {\"x\": 0.3247, \"y\": 0.2648}, {\"x\": 0.3254, \"y\": 0.2776}, {\"x\": 0.281, \"y\": 0.2788}], \"words\": [{\"text\": \"-\", \"confidence\": 0.9206, \"coordinates\": [{\"x\": 0.2823, \"y\": 0.2669}, {\"x\": 0.3233, \"y\": 0.2668}, {\"x\": 0.3233, \"y\": 0.2766}, {\"x\": 0.2824, \"y\": 0.2768}]}]}, {\"id\": 5, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<br/><p data-category=\\\"paragraph\\\" id=\\\"5\\\" style=\\\"font-size:20px\\\">수요일 오전</p>\", \"markdown\": \"\", \"text\": \"수요일 오전\"}, \"coordinates\": [{\"x\": 0.3236, \"y\": 0.2563}, {\"x\": 0.4528, \"y\": 0.253}, {\"x\": 0.4546, \"y\": 0.2886}, {\"x\": 0.3254, \"y\": 0.2919}], \"words\": [{\"text\": \"수요일\", \"confidence\": 0.9951, \"coordinates\": [{\"x\": 0.3292, \"y\": 0.2591}, {\"x\": 0.3946, \"y\": 0.2588}, {\"x\": 0.3949, \"y\": 0.2872}, {\"x\": 0.3294, \"y\": 0.2875}]}, {\"text\": \"오전\", \"confidence\": 0.9943, \"coordinates\": [{\"x\": 0.3999, \"y\": 0.263}, {\"x\": 0.4491, \"y\": 0.2628}, {\"x\": 0.4492, \"y\": 0.2841}, {\"x\": 0.4001, \"y\": 0.2843}]}]}, {\"id\": 6, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"6\\\" style=\\\"font-size:20px\\\">며느리 생일 9월 2일</p>\", \"markdown\": \"\", \"text\": \"며느리 생일 9월 2일\"}, \"coordinates\": [{\"x\": 0.1231, \"y\": 0.3106}, {\"x\": 0.3657, \"y\": 0.3045}, {\"x\": 0.3676, \"y\": 0.3428}, {\"x\": 0.125, \"y\": 0.349}], \"words\": [{\"text\": \"며느리\", \"confidence\": 0.9849, \"coordinates\": [{\"x\": 0.1284, \"y\": 0.3166}, {\"x\": 0.1992, \"y\": 0.3159}, {\"x\": 0.1995, \"y\": 0.3326}, {\"x\": 0.1287, \"y\": 0.3332}]}, {\"text\": \"생일\", \"confidence\": 0.9948, \"coordinates\": [{\"x\": 0.207, \"y\": 0.3117}, {\"x\": 0.2625, \"y\": 0.3114}, {\"x\": 0.2628, \"y\": 0.34}, {\"x\": 0.2072, \"y\": 0.3403}]}, {\"text\": \"9월\", \"confidence\": 0.9989, \"coordinates\": [{\"x\": 0.2687, \"y\": 0.3113}, {\"x\": 0.3126, \"y\": 0.3111}, {\"x\": 0.3129, \"y\": 0.3398}, {\"x\": 0.2689, \"y\": 0.3399}]}, {\"text\": \"2일\", \"confidence\": 0.9969, \"coordinates\": [{\"x\": 0.3182, \"y\": 0.3124}, {\"x\": 0.3615, \"y\": 0.3121}, {\"x\": 0.3618, \"y\": 0.3398}, {\"x\": 0.3185, \"y\": 0.34}]}]}, {\"id\": 7, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"7\\\" style=\\\"font-size:16px\\\">문 앞 택배 확인할 것</p>\", \"markdown\": \"\", \"text\": \"문 앞 택배 확인할 것\"}, \"coordinates\": [{\"x\": 0.095, \"y\": 0.3897}, {\"x\": 0.3632, \"y\": 0.3829}, {\"x\": 0.3648, \"y\": 0.4153}, {\"x\": 0.0966, \"y\": 0.4221}], \"words\": [{\"text\": \"문\", \"confidence\": 0.9887, \"coordinates\": [{\"x\": 0.0974, \"y\": 0.3959}, {\"x\": 0.1199, \"y\": 0.3946}, {\"x\": 0.1225, \"y\": 0.4173}, {\"x\": 0.1001, \"y\": 0.4186}]}, {\"text\": \"앞\", \"confidence\": 0.9945, \"coordinates\": [{\"x\": 0.1279, \"y\": 0.3944}, {\"x\": 0.1581, \"y\": 0.3929}, {\"x\": 0.1605, \"y\": 0.4176}, {\"x\": 0.1304, \"y\": 0.419}]}, {\"text\": \"택배\", \"confidence\": 0.9966, \"coordinates\": [{\"x\": 0.1661, \"y\": 0.3941}, {\"x\": 0.2287, \"y\": 0.3911}, {\"x\": 0.2309, \"y\": 0.4127}, {\"x\": 0.1683, \"y\": 0.4158}]}, {\"text\": \"확인할\", \"confidence\": 0.999, \"coordinates\": [{\"x\": 0.238, \"y\": 0.3878}, {\"x\": 0.3218, \"y\": 0.3849}, {\"x\": 0.3237, \"y\": 0.4129}, {\"x\": 0.2399, \"y\": 0.4158}]}, {\"text\": \"것\", \"confidence\": 0.9966, \"coordinates\": [{\"x\": 0.3293, \"y\": 0.3873}, {\"x\": 0.3584, \"y\": 0.386}, {\"x\": 0.3604, \"y\": 0.4086}, {\"x\": 0.3312, \"y\": 0.4098}]}]}, {\"id\": 8, \"page\": 1, \"category\": \"paragraph\", \"content\": {\"html\": \"<p data-category=\\\"paragraph\\\" id=\\\"8\\\" style=\\\"font-size:18px\\\">전기세 냈나? 확인</p>\", \"markdown\": \"\", \"text\": \"전기세 냈나? 확인\"}, \"coordinates\": [{\"x\": 0.1277, \"y\": 0.4454}, {\"x\": 0.3609, \"y\": 0.4395}, {\"x\": 0.3625, \"y\": 0.4711}, {\"x\": 0.1293, \"y\": 0.4769}], \"words\": [{\"text\": \"전기세\", \"confidence\": 0.9962, \"coordinates\": [{\"x\": 0.1314, \"y\": 0.4485}, {\"x\": 0.2112, \"y\": 0.4464}, {\"x\": 0.2122, \"y\": 0.4657}, {\"x\": 0.1324, \"y\": 0.4677}]}, {\"text\": \"냈나?\", \"confidence\": 0.982, \"coordinates\": [{\"x\": 0.2212, \"y\": 0.4458}, {\"x\": 0.2921, \"y\": 0.4445}, {\"x\": 0.293, \"y\": 0.468}, {\"x\": 0.2221, \"y\": 0.4693}]}, {\"text\": \"확인\", \"confidence\": 0.9948, \"coordinates\": [{\"x\": 0.3007, \"y\": 0.4418}, {\"x\": 0.3589, \"y\": 0.4416}, {\"x\": 0.3591, \"y\": 0.4694}, {\"x\": 0.301, \"y\": 0.4697}]}]}], \"usage\": {\"pages\": 1, \"standard\": [1]}, \"model\": \"document-parse-260630\"}",
+          "annotations": [],
+          "additional_values": "{\"previous_step_name\": null, \"step_run_id\": \"5d216e2c-108b-5b88-b720-551455c50c5f\", \"occurrence_id\": \"5d216e2c-108b-5b88-b720-551455c50c5f\", \"job_execution_id\": \"job_jZZ9e3zmhXy4um5dePmjnV\", \"cache_hit\": false, \"document_ids\": [\"file_XzYf6Yc49LVKzSWqTxMLJ9\"]}"
+        }
+      ],
+      "progress": {
+        "total": 1,
+        "completed": 1,
+        "percentage": 100
+      }
+    },
+    {
+      "id": "e476d90c-01d4-58a9-9218-d0e41615917f",
+      "type": "message",
+      "status": "completed",
+      "created_at": 1787409271,
+      "updated_at": 1787409274,
+      "is_deleted": false,
+      "model": "step_2_classify",
+      "response_id": null,
+      "db_type": null,
+      "raw_content": null,
+      "content_parsed": null,
+      "task": null,
+      "sources_raw": null,
+      "sources": null,
+      "additional_values_raw": null,
+      "additional_values": null,
+      "llm": null,
+      "tool_call_id": null,
+      "tool_calls_raw": null,
+      "tool_calls": null,
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "info",
+          "annotations": [],
+          "additional_values": "{\"previous_step_name\": \"step_1_parse\", \"step_run_id\": \"e476d90c-01d4-58a9-9218-d0e41615917f\", \"occurrence_id\": \"e476d90c-01d4-58a9-9218-d0e41615917f\", \"job_execution_id\": \"job_jZZ9e3zmhXy4um5dePmjnV\", \"cache_hit\": false, \"document_type\": {\"_value\": \"info\", \"confidence_score\": 0.18, \"confidence\": \"low\"}, \"hierarchy\": {\"leaf\": \"info\", \"path\": [\"info\"], \"depth\": 1}}"
+        }
+      ],
+      "progress": null
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "reasoning": null,
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": true,
+  "temperature": 1.0,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 756,
+    "output_tokens": 52,
+    "total_tokens": 808
+  },
+  "user": null,
+  "metadata": {
+    "source": "api"
+  },
+  "conversation": null,
+  "query": "",
+  "is_deleted": false,
+  "expires_at": null,
+  "search_projection_state": "ready"
+}
