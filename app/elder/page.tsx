@@ -169,7 +169,7 @@ export default function Elder() {
         <span className="text-brand">
           <Envelope size={56} />
         </span>
-        <h1 className="text-lead text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
+        <h1 className="text-balance text-lead text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
         <p className="text-body text-ink-mid">
           이 화면은 자녀분 계정과 연결돼야 합니다.
           <br />
