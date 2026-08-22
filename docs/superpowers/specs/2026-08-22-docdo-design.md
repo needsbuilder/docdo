@@ -256,8 +256,19 @@ Extract가 `low`를 준 필드나 결손 필드는 **음성으로도 화면으�
 
 ### 6.2 Studio 노드 구성
 
-**Studio 노드는 Parse · Classify · Extract · Instruct 네 종류다. Mask는 없다.**
-(랜딩 페이지 카드, Key Features 문서의 "the four nodes", Use Cases 예제 4개 모두 일치)
+**캔버스 실측(2026-08-22): Studio 노드는 6종이다.**
+`Parse · Classify · Extract · Instruct · **Validate** · **Merge**`
+
+문서에는 4종만 설명돼 있고 **Validate·Merge는 문서에 없는 신규 노드다.** **Mask는 캔버스에도 없다.**
+
+**Validate 노드가 우리 설계를 바꾼다.** 설정 패널 원문:
+> "각 규칙을 필수 또는 선택으로 구분할 수 있습니다. 필수 항목이 하나라도 실패하면 빨간 신호등,
+>  선택 항목이 하나 이상 실패하면 노란 신호등, 모든 규칙을 통과하면 초록 신호등으로 판정됩니다."
+
+출력 핸들이 `verdict-green` / `verdict-yellow` / `verdict-red` 3개라 **하위 노드가 신호등으로 분기**한다.
+→ **R2(문서 내부 정합성)를 Instruct가 아니라 Validate 노드로 구현한다.** 더 정확하고, 노드 종류가 하나 늘어난다.
+
+**Merge 노드**로 분기된 Extract 갈래를 합류시킨 뒤 Instruct로 보낸다.
 
 #### Parse — 손촬영 고지서 기준 설정
 
@@ -313,7 +324,7 @@ Mask 노드가 없으므로 **애초에 추출하지 않는 것이 유일한 확
 > 예 — `납부기한`: "고지서의 '납부기한' 또는 '납기내' 옆 날짜.
 > 발행일·고지일·납기후 기한과 혼동하지 말 것. YYYY-MM-DD로 정규화."
 
-#### Instruct-1 — 문서 내부 정합성 (Generate and decide)
+#### ~~Instruct-1~~ → **Validate 노드**로 대체 — 문서 내부 정합성
 
 `@` 로 상위 Extract 필드를 참조해 문서 **안에서** 확인 가능한 것만 판정한다.
 
