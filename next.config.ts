@@ -11,8 +11,8 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      // Next.js 는 인라인 부트스트랩 스크립트를 쓴다.
-      "script-src 'self' 'unsafe-inline'",
+      // Next.js 는 인라인 부트스트랩 스크립트를 쓴다. 개발 모드의 React 는 eval 도 필요하다.
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       // 문서에서 읽은 주소로 나가지 않는다. 우리 API Route 만 부른다.
