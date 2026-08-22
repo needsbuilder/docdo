@@ -2,13 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { VERDICT_LABEL } from "@/lib/verify";
-import type { Verdict } from "@/lib/types";
 import type { GuardianDoc } from "@/lib/dto";
-import CheckList from "@/components/CheckList";
-import BenefitHints from "@/components/BenefitHints";
+import GuardianCard from "@/components/GuardianCard";
 import AppBar from "@/components/AppBar";
-import { Phone, ArrowSquareOut, Tray, Check } from "@/components/icons";
+import { ArrowSquareOut, Tray, Check } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
 // 보호자는 이메일+비밀번호로 가입한다. 가입하면 가구 하나와 어르신 초대 링크가 생긴다.
@@ -16,37 +13,6 @@ import { Phone, ArrowSquareOut, Tray, Check } from "@/components/icons";
 
 const LIST_MS = 3000;
 const DETAIL_MS = 3000;
-
-// 판정은 카드 왼쪽 세로 띠로 — 고지서의 머리띠가 목록에서는 옆으로 선다.
-const TONE: Record<string, string> = {
-  mismatch: "border-l-danger",
-  review: "border-l-warn",
-  unknown_issuer: "border-l-line",
-  needs_human: "border-l-line",
-  not_checkable: "border-l-line",
-  failed: "border-l-line-soft",
-  no_extract: "border-l-line-soft",
-  clear: "border-l-ok",
-};
-const VERDICT_TONE: Record<string, string> = {
-  mismatch: "text-danger-ink",
-  review: "text-warn-ink",
-  clear: "text-ok-ink",
-};
-
-function money(v: unknown): string | null {
-  if (typeof v === "number") {
-    return Number.isSafeInteger(v) && v >= 0 ? `${v.toLocaleString("ko-KR")}원` : null;
-  }
-  if (typeof v !== "string") return null;
-  const s = v.trim().replace(/원$/, "");
-  if (!/^(\d+|\d{1,3}(,\d{3})+)$/.test(s)) return null;
-  return `${Number(s.replace(/,/g, "")).toLocaleString("ko-KR")}원`;
-}
-
-function text(v: unknown): string | null {
-  return typeof v === "string" && v.trim() ? v : null;
-}
 
 const NEEDS_ATTENTION = new Set(["mismatch", "review", "unknown_issuer", "needs_human", "not_checkable"]);
 
@@ -64,7 +30,6 @@ export default function Guardian() {
   const [copied, setCopied] = useState(false);
   const [docs, setDocs] = useState<GuardianDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [confirmDone, setConfirmDone] = useState<string | null>(null);
   const inFlight = useRef<Set<string>>(new Set());
   const listInFlight = useRef(false);
 
@@ -217,7 +182,6 @@ export default function Guardian() {
   }, [auth, docs]);
 
   async function mark(id: string, resolution: "acknowledged" | "done") {
-    setConfirmDone(null);
     try {
       const res = await fetch(`/api/documents/${id}`, {
         method: "PATCH",
@@ -383,136 +347,9 @@ export default function Guardian() {
       </section>
 
       <div className="space-y-5">
-        {docs.map((d) => {
-          const r = d.result;
-          const f = (r?.fields ?? {}) as Record<string, unknown>;
-          const amount = money(f.amount_krw);
-          const issuer = text(f.issuer);
-          const due = text(f.due_date) ?? text(f.apply_deadline);
-          const officialPhone = r?.safeContact?.phones?.[0];
-          const officialHost = r?.safeContact?.hosts?.[0];
-          const title = d.phrases?.docLabel ?? (r ? "우편물" : d.pipeline_status === "failed" ? "처리 실패" : "읽는 중…");
-
-          return (
-            <article
-              key={d.id}
-              className={`rounded-card border border-line-soft border-l-[6px] bg-surface p-5 shadow-card ${TONE[d.verdict ?? ""] ?? "border-l-line-soft"}`}
-            >
-              {d.verdict && (
-                <p className={`text-g-meta font-bold ${VERDICT_TONE[d.verdict] ?? "text-ink-mid"}`}>
-                  {VERDICT_LABEL[d.verdict as Verdict]}
-                </p>
-              )}
-              <h2 className="mt-0.5 min-w-0 text-g-title text-ink">{title}</h2>
-
-              {r && (issuer || amount || due) && (
-                <p className="mt-1 text-g-body text-ink-mid">
-                  {[issuer, amount, due && `${due}까지`].filter(Boolean).join(" · ")}
-                </p>
-              )}
-
-              {r && (
-                <div className="mt-4">
-                  <CheckList result={r} />
-                </div>
-              )}
-
-              {r && <BenefitHints result={r} />}
-
-              {r?.reasons && r.reasons.length > 0 && (
-                <ul className="mt-4 space-y-2 text-g-body">
-                  {r.reasons.map((x, i) => {
-                    const soft = x.rule === "R3" || x.rule === "R5";
-                    return (
-                      <li key={i} className={soft ? "text-ink-mid" : "text-danger-ink"}>
-                        {x.detail}
-                        <span className="text-ink-soft"> → {x.action}</span>
-                        <span className="ml-2 rounded-chip bg-paper px-1.5 py-0.5 font-mono text-g-meta text-ink-soft">
-                          {x.rule}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-
-              {/* 실행 경로는 레지스트리 값만. 문서에서 읽은 번호·링크는 링크가 되지 않는다. */}
-              {r && (officialPhone || officialHost) && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {officialPhone && (
-                    <a
-                      href={`tel:${officialPhone}`}
-                      className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-g-body font-bold text-ink active:bg-brand-tint"
-                    >
-                      <Phone size={20} />
-                      공식 대표번호 {officialPhone}
-                    </a>
-                  )}
-                  {officialHost && (
-                    <a
-                      href={`https://${officialHost}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink active:bg-brand-tint"
-                    >
-                      <ArrowSquareOut size={18} />
-                      공식 사이트
-                    </a>
-                  )}
-                </div>
-              )}
-
-              {r && (
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {confirmDone === d.id ? (
-                    <>
-                      <span className="flex min-h-tap items-center text-g-body text-ink">
-                        완료로 표시할까요? 부모님 화면도 바뀝니다.
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => mark(d.id, "done")}
-                        className="press on-brand min-h-tap rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
-                      >
-                        완료
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDone(null)}
-                        className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body text-ink active:bg-brand-tint"
-                      >
-                        취소
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => mark(d.id, "acknowledged")}
-                        disabled={d.resolution_status !== "new"}
-                        className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body font-bold text-ink active:bg-brand-tint disabled:border-line-soft disabled:text-ink-soft"
-                      >
-                        {d.resolution_status === "new" ? "확인함" : "확인됨"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDone(d.id)}
-                        disabled={d.resolution_status === "done"}
-                        className={`press min-h-tap rounded-control border-2 px-4 text-g-body font-bold ${
-                          d.resolution_status === "done"
-                            ? "border-ok bg-ok-tint text-ok-ink"
-                            : "on-brand border-brand bg-brand text-surface active:bg-brand-deep"
-                        }`}
-                      >
-                        {d.resolution_status === "done" ? "처리 완료됨" : "처리 완료"}
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </article>
-          );
-        })}
+        {docs.map((d) => (
+          <GuardianCard key={d.id} doc={d} onMark={mark} />
+        ))}
 
         {loaded && docs.length === 0 && (
           <div className="flex flex-col items-center gap-3 rounded-card bg-well px-6 py-12 text-center">

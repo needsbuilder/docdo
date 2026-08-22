@@ -1,0 +1,185 @@
+"use client";
+
+import { useState } from "react";
+import { VERDICT_LABEL } from "@/lib/verify";
+import type { Verdict } from "@/lib/types";
+import type { GuardianDoc } from "@/lib/dto";
+import { buildTodos, parseISODate, daysLeft, ddayLabel } from "@/lib/todo";
+import { findRelatedBenefits } from "@/lib/welfare";
+import CheckList from "@/components/CheckList";
+import BenefitHints from "@/components/BenefitHints";
+import { Phone, ArrowSquareOut, CaretRight } from "@/components/icons";
+
+// 보호자 카드 3단:
+//   1단(항상) 판정 · 제목 · 핵심값 · D-day
+//   2단(항상) 해야 할 일 — 여기가 "전달"과 "처리"의 차이다
+//   3단(접힘) 근거 — 대조표·사유·복지·공식 연락처. 불일치일 때만 기본으로 펼친다.
+
+const RAIL: Record<string, string> = {
+  mismatch: "border-l-danger",
+  review: "border-l-warn",
+  clear: "border-l-ok",
+  failed: "border-l-line-soft",
+  no_extract: "border-l-line-soft",
+};
+const VERDICT_TONE: Record<string, string> = { mismatch: "text-danger-ink", review: "text-warn-ink", clear: "text-ok-ink" };
+const TODO_TONE = { danger: "text-danger-ink", warn: "text-warn-ink", normal: "text-ink" } as const;
+const TODO_DOT = { danger: "bg-danger", warn: "bg-warn", normal: "bg-brand" } as const;
+
+function money(v: unknown): string | null {
+  if (typeof v === "number") return Number.isSafeInteger(v) && v >= 0 ? `${v.toLocaleString("ko-KR")}원` : null;
+  if (typeof v !== "string") return null;
+  const s = v.trim().replace(/원$/, "");
+  if (!/^(\d+|\d{1,3}(,\d{3})+)$/.test(s)) return null;
+  return `${Number(s.replace(/,/g, "")).toLocaleString("ko-KR")}원`;
+}
+const text = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
+
+export default function GuardianCard({
+  doc: d,
+  onMark,
+}: {
+  doc: GuardianDoc;
+  onMark: (id: string, resolution: "acknowledged" | "done") => void;
+}) {
+  const r = d.result;
+  const [open, setOpen] = useState(r?.verdict === "mismatch");
+  const [confirm, setConfirm] = useState(false);
+
+  const f = (r?.fields ?? {}) as Record<string, unknown>;
+  const conf = r?.fieldConfidence ?? {};
+  const amount = conf.amount_krw === "high" ? money(f.amount_krw) : null;
+  const issuer = text(f.issuer);
+  const dueRaw = conf.due_date === "high" ? f.due_date : conf.apply_deadline === "high" ? f.apply_deadline : null;
+  const due = parseISODate(dueRaw);
+  const dleft = due ? daysLeft(due) : null;
+  const title = d.phrases?.docLabel ?? (r ? "우편물" : d.pipeline_status === "failed" ? "처리 실패" : "읽는 중…");
+  const todos = r ? buildTodos(r) : [];
+  const benefits = r ? findRelatedBenefits(r) : [];
+  const officialPhone = r?.safeContact?.phones?.[0];
+  const officialHost = r?.safeContact?.hosts?.[0];
+  const done = d.resolution_status === "done";
+
+  return (
+    <article className={`rounded-card border border-line-soft border-l-[6px] bg-surface p-5 shadow-card ${RAIL[d.verdict ?? ""] ?? "border-l-line"} ${done ? "opacity-70" : ""}`}>
+      {/* 1단 */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {d.verdict && (
+            <p className={`text-g-meta font-bold ${VERDICT_TONE[d.verdict] ?? "text-ink-mid"}`}>{VERDICT_LABEL[d.verdict as Verdict]}</p>
+          )}
+          <h2 className="mt-0.5 text-g-title text-ink">{title}</h2>
+          {r && (issuer || amount) && (
+            <p className="mt-0.5 text-g-body text-ink-mid">{[issuer, amount].filter(Boolean).join(" · ")}</p>
+          )}
+        </div>
+        {due && dleft !== null && (
+          <p className={`shrink-0 rounded-chip px-2.5 py-1 text-g-meta font-bold tabular-nums ${dleft < 0 ? "bg-danger-tint text-danger-ink" : dleft <= 3 ? "bg-warn-tint text-warn-ink" : "bg-well text-ink-mid"}`}>
+            {ddayLabel(dleft)}
+          </p>
+        )}
+      </div>
+
+      {/* 2단 */}
+      {todos.length > 0 && !done && (
+        <ul className="mt-4 space-y-2">
+          {todos.map((t, i) => (
+            <li key={i} className={`flex gap-2.5 text-g-body ${TODO_TONE[t.tone]}`}>
+              <span className={`mt-[0.55em] size-2 shrink-0 rounded-full ${TODO_DOT[t.tone]}`} />
+              {t.text}
+            </li>
+          ))}
+        </ul>
+      )}
+      {benefits.length > 0 && !open && (
+        <p className="mt-2 text-g-meta text-brand">{benefits.map((b) => b.name).join(" · ")} 대상일 수 있음 — 근거에서 확인</p>
+      )}
+
+      {/* 3단 */}
+      {r && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="press mt-4 -ml-1 inline-flex min-h-tap items-center gap-1 rounded-inner px-1 text-g-body font-bold text-ink-mid active:bg-brand-tint"
+          >
+            <CaretRight size={16} className={`transition-transform ${open ? "rotate-90" : ""}`} />
+            근거 {open ? "접기" : "보기"}
+            <span className="font-normal text-ink-soft">
+              · 공식 정보 대조 {r.checksPassed ?? 0}/{r.checksTotal ?? 0}
+            </span>
+          </button>
+          {open && (
+            <div className="mt-3 space-y-4 border-t border-line-soft pt-4">
+              <CheckList result={r} />
+              {r.reasons?.length > 0 && (
+                <ul className="space-y-1.5 text-g-body">
+                  {r.reasons.map((x, i) => (
+                    <li key={i} className={x.rule === "R3" || x.rule === "R5" ? "text-ink-mid" : "text-danger-ink"}>
+                      {x.detail}
+                      <span className="text-ink-soft"> → {x.action}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <BenefitHints result={r} />
+              {(officialPhone || officialHost) && (
+                <div className="flex flex-wrap gap-2">
+                  {officialPhone && (
+                    <a href={`tel:${officialPhone}`} className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-g-body font-bold text-ink active:bg-brand-tint">
+                      <Phone size={20} />
+                      공식 대표번호 {officialPhone}
+                    </a>
+                  )}
+                  {officialHost && (
+                    <a href={`https://${officialHost}`} target="_blank" rel="noopener noreferrer" className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink active:bg-brand-tint">
+                      <ArrowSquareOut size={18} />
+                      공식 사이트
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 행동 */}
+      {r && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {confirm ? (
+            <>
+              <span className="flex min-h-tap items-center text-g-body text-ink">완료로 표시할까요? 부모님 화면도 바뀝니다.</span>
+              <button type="button" onClick={() => { setConfirm(false); onMark(d.id, "done"); }} className="press on-brand min-h-tap rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep">
+                완료
+              </button>
+              <button type="button" onClick={() => setConfirm(false)} className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body text-ink active:bg-brand-tint">
+                취소
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onMark(d.id, "acknowledged")}
+                disabled={d.resolution_status !== "new"}
+                className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body font-bold text-ink active:bg-brand-tint disabled:border-line-soft disabled:text-ink-soft"
+              >
+                {d.resolution_status === "new" ? "확인함" : "확인됨"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirm(true)}
+                disabled={done}
+                className={`press min-h-tap rounded-control px-4 text-g-body font-bold ${done ? "bg-ok-tint text-ok-ink" : "on-brand bg-brand text-surface active:bg-brand-deep"}`}
+              >
+                {done ? "처리 완료됨" : "처리 완료"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
