@@ -3,7 +3,7 @@ import { store, type DocPatch, type DocRow } from "@/lib/store";
 import { fetchJob, deleteFile } from "@/lib/upstage";
 import { verify } from "@/lib/verify";
 import { buildPhrases } from "@/lib/phrase";
-import { isGuardian, NO_STORE } from "@/lib/auth";
+import { getSession, readElderToken, NO_STORE } from "@/lib/auth";
 import { toElderDoc, toGuardianDoc } from "@/lib/dto";
 
 export const runtime = "nodejs";
@@ -15,9 +15,23 @@ function json(body: unknown, status = 200) {
 const TERMINAL = new Set(["completed", "failed"]);
 const PENDING = new Set(["queued", "in_progress"]);
 
-/** 호출자에 따라 다른 모양으로 준다. 어르신에게는 원문이 가지 않는다. */
-function shape(req: Request, row: DocRow & { error?: string }) {
-  return isGuardian(req) ? toGuardianDoc(row) : toElderDoc(row);
+type Caller = { kind: "guardian" } | { kind: "elder" } | null;
+
+/** 누가 이 문서를 볼 수 있는가. 보호자는 세션의 가구, 어르신은 초대 토큰의 가구가 문서 가구와 같아야 한다.
+ *  둘 다 아니면 문서는 **존재하지 않는 것**으로 답한다(404). 존재 여부 자체가 정보다. */
+async function caller(req: Request, doc: DocRow): Promise<Caller> {
+  const s = getSession(req);
+  if (s && s.householdId === doc.household_id) return { kind: "guardian" };
+  const token = readElderToken(req);
+  if (token) {
+    const g = await store().guardianByElderToken(token).catch(() => null);
+    if (g && g.household_id === doc.household_id) return { kind: "elder" };
+  }
+  return null;
+}
+
+function shape(c: Caller, row: DocRow & { error?: string }) {
+  return c?.kind === "guardian" ? toGuardianDoc(row) : toElderDoc(row);
 }
 
 /** 요청당 Upstage 를 딱 1회 조회한다. 폴링은 브라우저가 한다. */
@@ -26,6 +40,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const db = store();
   const doc = await db.get(id);
   if (!doc) return json({ error: "없음" }, 404);
+  const c = await caller(req, doc);
+  if (!c) return json({ error: "없음" }, 404);
 
   // 이미 판정이 끝난 문서는 다시 Upstage 를 부르지 않는다.
   // 지난번 삭제가 실패했으면 여기서 한 번 더 시도한다.
@@ -33,18 +49,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (doc.upstage_file_id && doc.upstage_file_id !== "delete_pending") {
       const ok = await deleteFile(doc.upstage_file_id);
       await db.update(id, { upstage_file_id: ok ? null : "delete_pending" }).catch(() => {});
-    } else if (doc.upstage_file_id === "delete_pending") {
-      // 파일 ID 를 잃었다. 더 할 수 있는 게 없다.
     }
-    return json(shape(req, doc));
+    return json(shape(c, doc));
   }
 
   if (doc.pipeline_status === "uploading" || !doc.upstage_job_id) {
-    // 업로드 도중이거나 job 생성에 실패한 행. 판정이 실릴 수 없다.
     if (doc.pipeline_status === "failed") {
-      return json(shape(req, { ...doc, error: "문서 처리 서비스에 연결하지 못했습니다" }));
+      return json(shape(c, { ...doc, error: "문서 처리 서비스에 연결하지 못했습니다" }));
     }
-    return json(shape(req, doc));
+    return json(shape(c, doc));
   }
 
   let job;
@@ -53,19 +66,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   } catch (e) {
     console.error("[documents] fetchJob 실패", id, e);
     // 일시적일 수 있다. 종결로 굳히지 않고 다시 물어보게 한다.
-    return json({ ...shape(req, doc), pipeline_status: "retry" }, 503);
+    return json({ ...shape(c, doc), pipeline_status: "retry" }, 503);
   }
 
   const status = typeof job.status === "string" ? job.status : "";
   if (PENDING.has(status)) {
     await db.update(id, { pipeline_status: status });
-    return json(shape(req, { ...doc, pipeline_status: status }));
+    return json(shape(c, { ...doc, pipeline_status: status }));
   }
   if (!TERMINAL.has(status)) {
     // 알 수 없는 상태. 원본을 지우지 않고 실패로 굳힌다.
     console.error("[documents] 알 수 없는 job status", id, status);
     const updated = await db.update(id, { pipeline_status: "failed" });
-    return json(shape(req, { ...(updated ?? doc), error: "문서 처리 결과를 해석하지 못했습니다" }));
+    return json(shape(c, { ...(updated ?? doc), error: "문서 처리 결과를 해석하지 못했습니다" }));
   }
 
   // failed 는 종결 상태다. 같은 job_id 재조회로는 안 되므로 결과를 그대로 굳힌다.
@@ -83,19 +96,20 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const ok = await deleteFile(doc.upstage_file_id);
     await db.update(id, { upstage_file_id: ok ? null : doc.upstage_file_id }).catch(() => {});
   }
-  return json(shape(req, updated ?? { ...doc, result, phrases, verdict: result.verdict }));
+  return json(shape(c, updated ?? { ...doc, result, phrases, verdict: result.verdict }));
 }
 
-// 자녀의 처리 상태. 한 방향으로만 간다. done 은 종결이다.
+// 보호자의 처리 상태. 한 방향으로만 간다. done 은 종결이다.
 const NEXT: Record<string, ReadonlySet<string>> = {
   new: new Set(["acknowledged", "done"]),
   acknowledged: new Set(["done"]),
   done: new Set(),
 };
 
-/** 자녀 전용. 어르신 화면에는 이 경로가 없다. */
+/** 보호자 전용. 어르신 화면에는 이 경로가 없다. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!isGuardian(req)) return json({ error: "로그인이 필요합니다" }, 401);
+  const s = getSession(req);
+  if (!s) return json({ error: "로그인이 필요합니다" }, 401);
   const { id } = await params;
   let resolution: unknown;
   try {
@@ -107,7 +121,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const db = store();
   const doc = await db.get(id);
-  if (!doc) return json({ error: "없음" }, 404);
+  if (!doc || doc.household_id !== s.householdId) return json({ error: "없음" }, 404);
   const allowed = NEXT[doc.resolution_status] ?? new Set();
   if (!allowed.has(resolution)) {
     // 같은 상태로 다시 누른 것은 멱등으로 본다. 되돌리기는 거부한다.

@@ -11,7 +11,6 @@ import type { Phrases } from "./phrase";
 // 배포에서 file 로 떨어지면 인스턴스마다 상태가 갈려 닫힌 루프가 깨진다. 그래서 배포에서는 막는다.
 // 파일 어댑터는 **프로세스 하나**에서만 안전하다. 여러 프로세스가 같은 파일을 쓰면 서로 덮어쓴다.
 
-export const HOUSEHOLD = "demo";
 const LIST_LIMIT = 50;
 
 export type PipelineStatus = "queued" | "in_progress" | "completed" | "failed" | "error";
@@ -34,6 +33,7 @@ export type DocRow = {
 };
 
 export type NewDoc = {
+  household_id: string;
   upstage_job_id: string | null;
   upstage_file_id: string | null;
   pipeline_status: string;
@@ -41,11 +41,30 @@ export type NewDoc = {
 
 export type DocPatch = Partial<Omit<DocRow, "id" | "household_id" | "created_at">>;
 
+export type Guardian = {
+  id: string;
+  email: string;
+  password_hash: string;
+  household_id: string;
+  elder_token: string;
+  created_at: string;
+};
+
+export type NewGuardian = Omit<Guardian, "id" | "created_at" | "household_id"> & { household_id?: string };
+
 export interface DocStore {
   insert(doc: NewDoc): Promise<DocRow>;
-  list(limit?: number): Promise<DocRow[]>;
+  /** 가구 단위. 다른 가구의 문서는 존재하지 않는 것처럼 다룬다. */
+  list(householdId: string, limit?: number): Promise<DocRow[]>;
   get(id: string): Promise<DocRow | null>;
   update(id: string, patch: DocPatch): Promise<DocRow | null>;
+  /** 전역 상한용. 가구와 무관하게 최근 N건. */
+  recent(limit: number): Promise<DocRow[]>;
+
+  createGuardian(g: NewGuardian): Promise<Guardian>;
+  guardianByEmail(email: string): Promise<Guardian | null>;
+  guardianById(id: string): Promise<Guardian | null>;
+  guardianByElderToken(token: string): Promise<Guardian | null>;
 }
 
 function supabaseEnv(): { url: string; key: string } | null {
@@ -70,22 +89,34 @@ function supabase(): SupabaseClient {
 
 const COLUMNS =
   "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at";
+const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at";
+
+async function gOne(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Guardian | null> {
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data as Guardian | null) ?? null;
+}
 
 const supabaseStore: DocStore = {
   async insert(doc) {
-    const { data, error } = await supabase()
-      .from("documents")
-      .insert({ household_id: HOUSEHOLD, ...doc })
-      .select(COLUMNS)
-      .single();
+    const { data, error } = await supabase().from("documents").insert(doc).select(COLUMNS).single();
     if (error) throw new Error(error.message);
     return data as DocRow;
   },
-  async list(limit = LIST_LIMIT) {
+  async list(householdId, limit = LIST_LIMIT) {
     const { data, error } = await supabase()
       .from("documents")
       .select(COLUMNS)
-      .eq("household_id", HOUSEHOLD)
+      .eq("household_id", householdId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as DocRow[];
+  },
+  async recent(limit) {
+    const { data, error } = await supabase()
+      .from("documents")
+      .select(COLUMNS)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) throw new Error(error.message);
@@ -105,6 +136,23 @@ const supabaseStore: DocStore = {
     if (error) throw new Error(error.message);
     return (data as DocRow | null) ?? null;
   },
+  async createGuardian(g) {
+    const { data, error } = await supabase().from("guardians").insert(g).select(G_COLUMNS).single();
+    if (error) {
+      if (error.code === "23505") throw new Error("DUPLICATE_EMAIL");
+      throw new Error(error.message);
+    }
+    return data as Guardian;
+  },
+  guardianByEmail(email) {
+    return gOne(supabase().from("guardians").select(G_COLUMNS).eq("email", email).maybeSingle());
+  },
+  guardianById(id) {
+    return gOne(supabase().from("guardians").select(G_COLUMNS).eq("id", id).maybeSingle());
+  },
+  guardianByElderToken(token) {
+    return gOne(supabase().from("guardians").select(G_COLUMNS).eq("elder_token", token).maybeSingle());
+  },
 };
 
 // ── 파일 (로컬 개발용) ────────────────────────────────────────
@@ -123,12 +171,12 @@ function serialize<T>(fn: () => Promise<T>): Promise<T> {
   return next;
 }
 
-async function readAll(): Promise<DocRow[]> {
+async function readJson<T>(name: string): Promise<T[]> {
   const { readFile } = await import("node:fs/promises");
   const { join } = await import("node:path");
   let raw: string;
   try {
-    raw = await readFile(join(dataDir(), "documents.json"), "utf8");
+    raw = await readFile(join(dataDir(), name), "utf8");
   } catch (e) {
     // 파일이 아직 없는 것만 빈 목록이다. 권한·I/O 오류를 빈 목록으로 바꾸면
     // 다음 insert 가 기존 데이터를 통째로 지운다.
@@ -136,19 +184,24 @@ async function readAll(): Promise<DocRow[]> {
     throw e;
   }
   const parsed = JSON.parse(raw); // 깨진 JSON 은 그대로 던진다
-  if (!Array.isArray(parsed)) throw new Error("documents.json 이 배열이 아님");
-  return parsed as DocRow[];
+  if (!Array.isArray(parsed)) throw new Error(`${name} 이 배열이 아님`);
+  return parsed as T[];
 }
 
-async function writeAll(rows: DocRow[]): Promise<void> {
+async function writeJson<T>(name: string, rows: T[]): Promise<void> {
   const { mkdir, writeFile, rename } = await import("node:fs/promises");
   const { join } = await import("node:path");
   const dir = dataDir();
   await mkdir(dir, { recursive: true });
-  const tmp = join(dir, `documents.${process.pid}.tmp`);
+  const tmp = join(dir, `${name}.${process.pid}.tmp`);
   await writeFile(tmp, JSON.stringify(rows, null, 2), "utf8");
-  await rename(tmp, join(dir, "documents.json"));
+  await rename(tmp, join(dir, name));
 }
+
+const readAll = () => readJson<DocRow>("documents.json");
+const writeAll = (rows: DocRow[]) => writeJson("documents.json", rows);
+const readGuardians = () => readJson<Guardian>("guardians.json");
+const writeGuardians = (rows: Guardian[]) => writeJson("guardians.json", rows);
 
 const fileStore: DocStore = {
   insert(doc) {
@@ -156,7 +209,6 @@ const fileStore: DocStore = {
       const rows = await readAll();
       const row: DocRow = {
         id: crypto.randomUUID(),
-        household_id: HOUSEHOLD,
         created_at: new Date().toISOString(),
         resolution_status: "new",
         action_type: null,
@@ -172,12 +224,20 @@ const fileStore: DocStore = {
       return row;
     });
   },
-  async list(limit = LIST_LIMIT) {
+  async list(householdId, limit = LIST_LIMIT) {
     const rows = await readAll();
     // 같은 밀리초에 들어온 행이 있을 수 있다. 그때는 나중에 넣은 것이 먼저다.
     return rows
       .map((r, i) => ({ r, i }))
-      .filter(({ r }) => r.household_id === HOUSEHOLD)
+      .filter(({ r }) => r.household_id === householdId)
+      .sort((a, b) => b.r.created_at.localeCompare(a.r.created_at) || b.i - a.i)
+      .slice(0, limit)
+      .map(({ r }) => r);
+  },
+  async recent(limit) {
+    const rows = await readAll();
+    return rows
+      .map((r, i) => ({ r, i }))
       .sort((a, b) => b.r.created_at.localeCompare(a.r.created_at) || b.i - a.i)
       .slice(0, limit)
       .map(({ r }) => r);
@@ -194,6 +254,32 @@ const fileStore: DocStore = {
       await writeAll(rows);
       return rows[i];
     });
+  },
+  createGuardian(g) {
+    return serialize(async () => {
+      const rows = await readGuardians();
+      if (rows.some((r) => r.email === g.email)) throw new Error("DUPLICATE_EMAIL");
+      const row: Guardian = {
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        household_id: g.household_id ?? crypto.randomUUID(),
+        email: g.email,
+        password_hash: g.password_hash,
+        elder_token: g.elder_token,
+      };
+      rows.push(row);
+      await writeGuardians(rows);
+      return row;
+    });
+  },
+  async guardianByEmail(email) {
+    return (await readGuardians()).find((r) => r.email === email) ?? null;
+  },
+  async guardianById(id) {
+    return (await readGuardians()).find((r) => r.id === id) ?? null;
+  },
+  async guardianByElderToken(token) {
+    return (await readGuardians()).find((r) => r.elder_token === token) ?? null;
   },
 };
 

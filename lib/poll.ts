@@ -11,6 +11,8 @@ export type PollOptions = {
   intervalMs?: number;
   timeoutMs?: number;
   signal?: AbortSignal;
+  /** 어르신 초대 토큰. 서버가 이 문서를 이 어르신에게 보여줘도 되는지 확인하는 근거다. */
+  elderToken?: string;
   onTick?: (doc: DocView | null, attempt: number) => void;
 };
 
@@ -39,12 +41,15 @@ const sleep = (ms: number, signal?: AbortSignal) =>
     signal?.addEventListener("abort", onAbort, { once: true });
   });
 
+export const elderHeaders = (token?: string | null): HeadersInit =>
+  token ? { "x-docdo-h": token } : {};
+
 /** 판정이 나올 때까지 조회한다. 관측된 처리시간은 4~26초(n=12)라 상한을 넉넉히 둔다. */
 export async function pollDocument(id: string, opts: PollOptions = {}): Promise<DocView> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const intervalMs = positive(opts.intervalMs, 2500);
   const timeoutMs = positive(opts.timeoutMs, 120_000);
-  const { signal: outer, onTick } = opts;
+  const { signal: outer, onTick, elderToken } = opts;
 
   // 외부 신호 + 내부 데드라인을 하나로 합친다. 어느 쪽이든 fetch 까지 끊는다.
   const inner = new AbortController();
@@ -64,7 +69,10 @@ export async function pollDocument(id: string, opts: PollOptions = {}): Promise<
       let doc: DocView | null = null;
       let retryable = false;
       try {
-        const res = await fetchImpl(`/api/documents/${encodeURIComponent(id)}`, { signal });
+        const res = await fetchImpl(`/api/documents/${encodeURIComponent(id)}`, {
+          signal,
+          headers: elderHeaders(elderToken),
+        });
         if (res.ok) {
           doc = (await res.json()) as DocView;
           consecutiveErrors = 0;
@@ -72,11 +80,14 @@ export async function pollDocument(id: string, opts: PollOptions = {}): Promise<
           // 서버가 Upstage 조회에 실패했다. 일시적일 수 있으니 다시 물어본다.
           retryable = true;
           consecutiveErrors++;
+        } else if (res.status === 401 || res.status === 404) {
+          throw new Error("이 문서를 볼 권한이 없습니다");
         } else {
           consecutiveErrors++;
         }
       } catch (e) {
         if (signal.aborted) throw signal.reason ?? e;
+        if (e instanceof Error && /권한/.test(e.message)) throw e;
         consecutiveErrors++;
       }
       onTick?.(doc, attempt);

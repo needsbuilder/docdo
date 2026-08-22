@@ -253,32 +253,72 @@ describe("#1 DTO — 어르신 응답에는 원문이 없다", () => {
   });
 });
 
-describe("auth", () => {
+describe("auth — 계정·세션", () => {
   beforeEach(() => vi.resetModules());
 
-  it("암구호 없으면 configured=false, 모든 요청이 비인증", async () => {
-    delete process.env.GUARDIAN_PASSPHRASE;
-    const { authConfigured, isGuardian } = await import("@/lib/auth");
+  it("AUTH_SECRET 없으면 configured=false, 세션 없음", async () => {
+    delete process.env.AUTH_SECRET;
+    const { authConfigured, getSession } = await import("@/lib/auth");
     expect(authConfigured()).toBe(false);
-    expect(isGuardian(new Request("https://x/"))).toBe(false);
+    expect(getSession(new Request("https://x/"))).toBeNull();
   });
 
-  it("맞는 암구호로 만든 쿠키만 통과한다", async () => {
-    process.env.GUARDIAN_PASSPHRASE = "docdo-test-pass";
-    const { checkPassphrase, sessionCookie, isGuardian } = await import("@/lib/auth");
-    expect(checkPassphrase("docdo-test-pass")).toBe(true);
-    expect(checkPassphrase("docdo-test-pas")).toBe(false);
-    expect(checkPassphrase(123)).toBe(false);
-    const cookie = sessionCookie().split(";")[0];
-    expect(isGuardian(new Request("https://x/", { headers: { cookie } }))).toBe(true);
-    expect(isGuardian(new Request("https://x/", { headers: { cookie: "docdo_guardian=abc" } }))).toBe(false);
-    expect(sessionCookie()).toMatch(/HttpOnly/);
-    expect(sessionCookie()).toMatch(/Secure/);
+  it("비밀번호 해시는 검증되고 다른 비밀번호는 거부된다", async () => {
+    process.env.AUTH_SECRET = "0123456789abcdef0123456789abcdef";
+    const { hashPassword, verifyPassword } = await import("@/lib/auth");
+    const h = hashPassword("correct horse battery");
+    expect(h.startsWith("scrypt$")).toBe(true);
+    expect(verifyPassword("correct horse battery", h)).toBe(true);
+    expect(verifyPassword("correct horse batter", h)).toBe(false);
+    expect(verifyPassword("x", "garbage")).toBe(false);
+    expect(hashPassword("a")).not.toBe(hashPassword("a")); // salt
   });
 
-  it("6자 미만 암구호는 설정으로 치지 않는다", async () => {
-    process.env.GUARDIAN_PASSPHRASE = "abc";
-    const { authConfigured } = await import("@/lib/auth");
-    expect(authConfigured()).toBe(false);
+  it("서명된 세션 쿠키만 통과하고 변조·만료는 거부된다", async () => {
+    process.env.AUTH_SECRET = "0123456789abcdef0123456789abcdef";
+    const { sessionCookie, getSession } = await import("@/lib/auth");
+    const cookie = sessionCookie({ guardianId: "g1", householdId: "h1" }).split(";")[0];
+    const s = getSession(new Request("https://x/", { headers: { cookie } }));
+    expect(s?.guardianId).toBe("g1");
+    expect(s?.householdId).toBe("h1");
+    // payload 변조
+    const [name, value] = cookie.split("=");
+    const [payload, sig] = value.split(".");
+    const tampered = Buffer.from(JSON.stringify({ guardianId: "g1", householdId: "OTHER", exp: 9e9 })).toString("base64url");
+    expect(getSession(new Request("https://x/", { headers: { cookie: `${name}=${tampered}.${sig}` } }))).toBeNull();
+    // 다른 서명키
+    process.env.AUTH_SECRET = "ffffffffffffffffffffffffffffffff";
+    vi.resetModules();
+    const m2 = await import("@/lib/auth");
+    expect(m2.getSession(new Request("https://x/", { headers: { cookie: `${name}=${payload}.${sig}` } }))).toBeNull();
+  });
+
+  it("쿠키 속성: HttpOnly·Secure·SameSite", async () => {
+    process.env.AUTH_SECRET = "0123456789abcdef0123456789abcdef";
+    const { sessionCookie } = await import("@/lib/auth");
+    const c = sessionCookie({ guardianId: "g", householdId: "h" });
+    expect(c).toMatch(/HttpOnly/);
+    expect(c).toMatch(/Secure/);
+    expect(c).toMatch(/SameSite=Lax/);
+  });
+
+  it("어르신 토큰은 헤더 우선, 모양이 틀리면 무시", async () => {
+    process.env.AUTH_SECRET = "0123456789abcdef0123456789abcdef";
+    const { readElderToken, newElderToken } = await import("@/lib/auth");
+    const t = newElderToken();
+    expect(t).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+    expect(readElderToken(new Request("https://x/?h=short"))).toBeNull();
+    expect(readElderToken(new Request(`https://x/?h=${t}`))).toBe(t);
+    expect(readElderToken(new Request("https://x/", { headers: { "x-docdo-h": t } }))).toBe(t);
+    expect(readElderToken(new Request("https://x/?h=../../etc"))).toBeNull();
+  });
+
+  it("이메일·비밀번호 형식", async () => {
+    process.env.AUTH_SECRET = "0123456789abcdef0123456789abcdef";
+    const { validEmail, validPassword } = await import("@/lib/auth");
+    expect(validEmail("a@b.co")).toBe(true);
+    expect(validEmail("not an email")).toBe(false);
+    expect(validPassword("1234567")).toBe(false);
+    expect(validPassword("12345678")).toBe(true);
   });
 });

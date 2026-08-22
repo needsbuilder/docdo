@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { speak, stopSpeaking } from "@/lib/speak";
-import type { DocView } from "@/lib/poll";
+import { elderHeaders, type DocView } from "@/lib/poll";
 import { Warning, Phone, SpeakerHigh, PaperPlaneTilt, Eye, CheckCircle } from "@/components/icons";
 
 // 어르신 화면에는 계좌번호·납부 버튼·결제 링크·신청 버튼이 없다.
@@ -11,7 +11,15 @@ import { Warning, Phone, SpeakerHigh, PaperPlaneTilt, Eye, CheckCircle } from "@
 
 const RELOAD_MS = 3000;
 
-export default function ElderResult({ doc, onReset }: { doc: DocView; onReset: () => void }) {
+export default function ElderResult({
+  doc,
+  elderToken,
+  onReset,
+}: {
+  doc: DocView;
+  elderToken: string;
+  onReset: () => void;
+}) {
   const [cur, setCur] = useState<DocView>(doc);
   const stoppedRef = useRef(false);
 
@@ -22,7 +30,10 @@ export default function ElderResult({ doc, onReset }: { doc: DocView; onReset: (
     const t = setInterval(async () => {
       if (stoppedRef.current) return;
       try {
-        const res = await fetch(`/api/documents/${doc.id}`, { signal: ac.signal });
+        const res = await fetch(`/api/documents/${doc.id}`, {
+          signal: ac.signal,
+          headers: elderHeaders(elderToken),
+        });
         if (!res.ok) return;
         const next = (await res.json()) as DocView;
         if (next?.id) setCur(next);
@@ -35,7 +46,7 @@ export default function ElderResult({ doc, onReset }: { doc: DocView; onReset: (
       ac.abort();
       clearInterval(t);
     };
-  }, [doc.id]);
+  }, [doc.id, elderToken]);
 
   useEffect(() => stopSpeaking, []);
 

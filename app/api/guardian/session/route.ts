@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
-import { authConfigured, checkPassphrase, clearCookie, isGuardian, sessionCookie, NO_STORE } from "@/lib/auth";
+import { store } from "@/lib/store";
+import {
+  authConfigured,
+  clearCookie,
+  getSession,
+  sessionCookie,
+  validEmail,
+  verifyPassword,
+  NO_STORE,
+} from "@/lib/auth";
 import { clientKey, takeToken } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
-/** 자녀 로그인. 공유 암구호 하나다 — 데모 규모. */
+/** 로그인. */
 export async function POST(req: Request) {
   if (!authConfigured()) {
-    return NextResponse.json({ error: "서버에 암구호가 설정되지 않았습니다" }, { status: 503, headers: NO_STORE });
+    return NextResponse.json({ error: "서버에 AUTH_SECRET 이 설정되지 않았습니다" }, { status: 503, headers: NO_STORE });
   }
   // 무차별 대입은 업로드와 같은 버킷으로 막는다.
   const gate = takeToken(`login:${clientKey(req)}`);
@@ -17,20 +26,42 @@ export async function POST(req: Request) {
       headers: { ...NO_STORE, "Retry-After": String(gate.retryAfterSec) },
     });
   }
-  let passphrase: unknown;
+  let body: { email?: unknown; password?: unknown };
   try {
-    ({ passphrase } = await req.json());
+    body = await req.json();
   } catch {
     return NextResponse.json({ error: "JSON 형식이 아닙니다" }, { status: 400, headers: NO_STORE });
   }
-  if (!checkPassphrase(passphrase)) {
-    return NextResponse.json({ error: "암구호가 맞지 않습니다" }, { status: 401, headers: NO_STORE });
-  }
-  return NextResponse.json({ ok: true }, { headers: { ...NO_STORE, "Set-Cookie": sessionCookie() } });
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body.password === "string" ? body.password : "";
+  // 이메일 존재 여부를 응답으로 구분하지 않는다.
+  const fail = () =>
+    NextResponse.json({ error: "이메일 또는 비밀번호가 맞지 않습니다" }, { status: 401, headers: NO_STORE });
+  if (!validEmail(email) || !password) return fail();
+  const g = await store().guardianByEmail(email);
+  if (!g || !verifyPassword(password, g.password_hash)) return fail();
+  return NextResponse.json(
+    { ok: true },
+    { headers: { ...NO_STORE, "Set-Cookie": sessionCookie({ guardianId: g.id, householdId: g.household_id }) } },
+  );
 }
 
+/** 내 세션. 로그인돼 있으면 어르신 초대 토큰도 준다(보호자만 본다). */
 export async function GET(req: Request) {
-  return NextResponse.json({ authenticated: isGuardian(req), configured: authConfigured() }, { headers: NO_STORE });
+  const s = getSession(req);
+  if (!s) {
+    return NextResponse.json({ authenticated: false, configured: authConfigured() }, { headers: NO_STORE });
+  }
+  const g = await store().guardianById(s.guardianId);
+  if (!g) {
+    return NextResponse.json({ authenticated: false, configured: true }, {
+      headers: { ...NO_STORE, "Set-Cookie": clearCookie() },
+    });
+  }
+  return NextResponse.json(
+    { authenticated: true, configured: true, email: g.email, elderToken: g.elder_token },
+    { headers: NO_STORE },
+  );
 }
 
 export async function DELETE() {

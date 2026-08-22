@@ -7,16 +7,15 @@ import type { Verdict } from "@/lib/types";
 import type { GuardianDoc } from "@/lib/dto";
 import CheckList from "@/components/CheckList";
 import BenefitHints from "@/components/BenefitHints";
-import { Phone, ArrowSquareOut, Tray, Envelope } from "@/components/icons";
+import { Phone, ArrowSquareOut, Tray, Envelope, Check } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
-// 다만 실행 경로가 되는 연락처·링크는 레지스트리 값만 쓴다 — 문서에서 읽은 값은 표시만 한다.
-// 부모님 우편물 원문을 보는 화면이라 암구호가 필요하다.
+// 보호자는 이메일+비밀번호로 가입한다. 가입하면 가구 하나와 어르신 초대 링크가 생긴다.
+// 어르신은 그 링크를 한 번 열면 계정 없이 이 가구에 묶인다.
 
 const LIST_MS = 3000;
 const DETAIL_MS = 3000;
 
-// 판정 색은 테두리로. amber-400(1.67:1) 같은 값은 저시력에 보이지 않는다.
 const TONE: Record<string, string> = {
   mismatch: "border-danger bg-danger-tint",
   review: "border-warn bg-warn-tint",
@@ -28,7 +27,6 @@ const TONE: Record<string, string> = {
   clear: "border-line bg-surface",
 };
 
-// 화면 표시용. 검증 계층과 같은 문법만 허용한다 — "1,,,,2원" 이 "12원" 으로 보이면 안 된다.
 function money(v: unknown): string | null {
   if (typeof v === "number") {
     return Number.isSafeInteger(v) && v >= 0 ? `${v.toLocaleString("ko-KR")}원` : null;
@@ -45,50 +43,104 @@ function text(v: unknown): string | null {
 
 const NEEDS_ATTENTION = new Set(["mismatch", "review", "unknown_issuer", "needs_human", "not_checkable"]);
 
-type Auth = "checking" | "need-login" | "ok" | "unconfigured";
+type Auth = "checking" | "anon" | "ok" | "unconfigured";
+type Me = { email: string; elderToken: string };
 
 export default function Guardian() {
   const [auth, setAuth] = useState<Auth>("checking");
-  const [passphrase, setPassphrase] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const [me, setMe] = useState<Me | null>(null);
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [formError, setFormError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [docs, setDocs] = useState<GuardianDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
-  // 되돌릴 수 없는 동작(어르신 화면까지 바뀐다)은 한 번 더 묻는다. 모달·길게누르기 아님.
   const [confirmDone, setConfirmDone] = useState<string | null>(null);
   const inFlight = useRef<Set<string>>(new Set());
   const listInFlight = useRef(false);
 
+  const refreshMe = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const r = await fetch("/api/guardian/session", { signal });
+      const d = (await r.json()) as {
+        authenticated: boolean;
+        configured: boolean;
+        email?: string;
+        elderToken?: string;
+      };
+      if (!d.configured) return setAuth("unconfigured");
+      if (d.authenticated && d.email && d.elderToken) {
+        setMe({ email: d.email, elderToken: d.elderToken });
+        setAuth("ok");
+      } else {
+        setMe(null);
+        setAuth("anon");
+      }
+    } catch {
+      setAuth("anon");
+    }
+  }, []);
+
   useEffect(() => {
     const ac = new AbortController();
-    const t = setTimeout(async () => {
-      try {
-        const r = await fetch("/api/guardian/session", { signal: ac.signal });
-        const d = (await r.json()) as { authenticated: boolean; configured: boolean };
-        setAuth(!d.configured ? "unconfigured" : d.authenticated ? "ok" : "need-login");
-      } catch {
-        setAuth("need-login");
-      }
-    }, 0);
+    const t = setTimeout(() => refreshMe(ac.signal), 0);
     return () => {
       ac.abort();
       clearTimeout(t);
     };
-  }, []);
+  }, [refreshMe]);
 
-  async function login(e: React.FormEvent) {
+  async function submitAuth(e: React.FormEvent) {
     e.preventDefault();
-    setLoginError("");
-    const r = await fetch("/api/guardian/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passphrase }),
-    });
-    if (r.ok) {
-      setPassphrase("");
-      setAuth("ok");
-    } else {
-      const d = (await r.json().catch(() => ({}))) as { error?: string };
-      setLoginError(d.error ?? "로그인하지 못했습니다");
+    setFormError("");
+    setBusy(true);
+    try {
+      const r = await fetch(mode === "signup" ? "/api/guardian/signup" : "/api/guardian/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (r.ok) {
+        setPassword("");
+        await refreshMe();
+      } else {
+        const d = (await r.json().catch(() => ({}))) as { error?: string };
+        setFormError(d.error ?? "처리하지 못했습니다");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/guardian/session", { method: "DELETE" });
+    setMe(null);
+    setDocs([]);
+    setLoaded(false);
+    setAuth("anon");
+  }
+
+  const elderLink = me ? `${typeof window !== "undefined" ? window.location.origin : ""}/elder?h=${me.elderToken}` : "";
+
+  async function shareLink() {
+    if (!elderLink) return;
+    const data = { title: "독도 — 우편물 읽어드리기", text: "이 링크를 한 번 열어 두시면 돼요.", url: elderLink };
+    try {
+      if (navigator.share && (!navigator.canShare || navigator.canShare(data))) {
+        await navigator.share(data);
+        return;
+      }
+    } catch {
+      /* 공유 취소. 복사로 넘어간다 */
+    }
+    try {
+      await navigator.clipboard.writeText(elderLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setFormError("복사하지 못했습니다. 링크를 길게 눌러 복사해 주세요.");
     }
   }
 
@@ -98,7 +150,7 @@ export default function Guardian() {
     try {
       const res = await fetch("/api/documents", { signal });
       if (res.status === 401) {
-        setAuth("need-login");
+        setAuth("anon");
         return;
       }
       if (!res.ok) return;
@@ -130,7 +182,7 @@ export default function Guardian() {
   }, [auth, load]);
 
   // 목록 API 는 Upstage 를 부르지 않는다. 판정 없는 문서는 여기서 끌어와야
-  // 어르신 화면을 닫아도 자녀 화면이 스스로 완료된다. 타이머 하나로 돈다.
+  // 어르신 화면을 닫아도 보호자 화면이 스스로 완료된다. 타이머 하나로 돈다.
   useEffect(() => {
     if (auth !== "ok") return;
     const ac = new AbortController();
@@ -166,7 +218,7 @@ export default function Guardian() {
         body: JSON.stringify({ resolution }),
       });
       if (res.status === 401) {
-        setAuth("need-login");
+        setAuth("anon");
         return;
       }
       if (!res.ok) return;
@@ -178,9 +230,16 @@ export default function Guardian() {
   }
 
   const Header = (
-    <header className="mb-6 flex items-center gap-3 text-brand">
-      <Envelope size={28} />
-      <h1 className="text-g-title text-ink">부모님 우편물</h1>
+    <header className="mb-6 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 text-brand">
+        <Envelope size={28} />
+        <h1 className="text-g-title text-ink">부모님 우편물</h1>
+      </div>
+      {me && (
+        <button type="button" onClick={logout} className="press min-h-tap rounded-control px-3 text-g-meta text-ink-soft active:bg-brand-tint">
+          로그아웃
+        </button>
+      )}
     </header>
   );
 
@@ -198,41 +257,75 @@ export default function Guardian() {
       <main className="mx-auto max-w-2xl px-5 py-8">
         {Header}
         <p className="text-g-body text-ink-mid">
-          서버에 자녀 화면 암구호(<code>GUARDIAN_PASSPHRASE</code>)가 설정되지 않았습니다.
+          서버에 <code>AUTH_SECRET</code> 이 설정되지 않았습니다.
         </p>
       </main>
     );
   }
 
-  if (auth === "need-login") {
+  if (auth === "anon") {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-8">
         {Header}
         <p className="mb-6 text-g-body text-ink-mid">
-          부모님 우편물 내용을 보는 화면입니다. 암구호를 입력해 주세요.
+          부모님 우편물을 대신 확인하는 화면입니다. 가입하면 부모님께 보낼 링크가 만들어집니다.
         </p>
-        <form onSubmit={login} className="flex flex-col gap-3">
-          <label htmlFor="passphrase" className="text-g-body font-bold text-ink">
-            암구호
+        <div className="mb-4 flex rounded-control border-2 border-line bg-surface p-1" role="tablist">
+          {(["login", "signup"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              onClick={() => {
+                setMode(m);
+                setFormError("");
+              }}
+              className={`press min-h-tap flex-1 rounded-inner text-g-body font-bold ${
+                mode === m ? "bg-brand text-surface" : "text-ink-mid"
+              }`}
+            >
+              {m === "login" ? "로그인" : "가입"}
+            </button>
+          ))}
+        </div>
+        <form onSubmit={submitAuth} className="flex flex-col gap-3">
+          <label htmlFor="email" className="text-g-body font-bold text-ink">
+            이메일
           </label>
           <input
-            id="passphrase"
+            id="email"
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-title text-ink"
+            required
+          />
+          <label htmlFor="password" className="text-g-body font-bold text-ink">
+            비밀번호 <span className="font-normal text-ink-soft">(8자 이상)</span>
+          </label>
+          <input
+            id="password"
             type="password"
-            autoComplete="current-password"
-            value={passphrase}
-            onChange={(e) => setPassphrase(e.target.value)}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={8}
             className="min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-title text-ink"
             required
           />
           <button
             type="submit"
-            className="press on-brand min-h-tap rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+            disabled={busy}
+            className="press on-brand mt-2 min-h-tap rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep disabled:opacity-60"
           >
-            들어가기
+            {busy ? "처리 중…" : mode === "signup" ? "가입하고 시작하기" : "로그인"}
           </button>
-          {loginError && (
+          {formError && (
             <p className="text-g-body text-danger-ink" aria-live="polite">
-              {loginError}
+              {formError}
             </p>
           )}
         </form>
@@ -245,6 +338,26 @@ export default function Guardian() {
   return (
     <main className="mx-auto max-w-2xl px-5 py-8">
       {Header}
+
+      {/* 어르신 초대 링크. 한 번만 보내면 된다 — 어르신 폰에 저장된다. */}
+      <section className="mb-6 rounded-card border-2 border-brand bg-brand-tint p-5">
+        <h2 className="text-g-body font-bold text-brand">부모님 폰에 보낼 링크</h2>
+        <p className="mt-1 text-g-body text-ink-mid">
+          부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={shareLink}
+            className="press on-brand inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+          >
+            {copied ? <Check size={20} /> : <ArrowSquareOut size={18} />}
+            {copied ? "복사됨" : "링크 보내기"}
+          </button>
+          <code className="min-w-0 break-all text-g-meta text-ink-soft">{elderLink}</code>
+        </div>
+      </section>
+
       {docs.length > 0 && (
         <p className="mb-5 text-g-body tabular-nums text-ink-mid">
           확인 필요 <strong className="text-ink">{attention}</strong> · 전체 <strong className="text-ink">{docs.length}</strong>
@@ -338,7 +451,7 @@ export default function Guardian() {
                   {confirmDone === d.id ? (
                     <>
                       <span className="flex min-h-tap items-center text-g-body text-ink">
-                        완료로 표시할까요? 어르신 화면도 바뀝니다.
+                        완료로 표시할까요? 부모님 화면도 바뀝니다.
                       </span>
                       <button
                         type="button"
@@ -391,9 +504,9 @@ export default function Guardian() {
               <Tray size={48} />
             </span>
             <p className="text-g-title text-ink">아직 받은 우편물이 없습니다</p>
-            <p className="text-g-body text-ink-mid">어르신이 사진을 찍으면 여기에 올라옵니다.</p>
-            <Link href="/elder" className="mt-2 text-g-body font-bold text-brand underline underline-offset-4">
-              어르신 화면 열기
+            <p className="text-g-body text-ink-mid">위 링크를 부모님께 보내고, 부모님이 사진을 찍으면 여기에 올라옵니다.</p>
+            <Link href={`/elder?h=${me?.elderToken ?? ""}`} className="mt-2 text-g-body font-bold text-brand underline underline-offset-4">
+              이 폰에서 어르신 화면 열어보기
             </Link>
           </div>
         )}

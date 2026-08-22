@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { compress } from "@/lib/compress";
 import { primeSpeech, speak } from "@/lib/speak";
 import { pollDocument, PollTimeout, type DocView } from "@/lib/poll";
+import { readElderToken, clearElderToken } from "@/lib/elderToken";
 import ElderResult from "@/components/ElderResult";
-import { Camera } from "@/components/icons";
+import { Camera, Envelope } from "@/components/icons";
 
 type Stage = "idle" | "uploading" | "waiting" | "done" | "error";
 
@@ -32,6 +33,8 @@ export default function Elder() {
   const [doc, setDoc] = useState<DocView | null>(null);
   const [errorText, setErrorText] = useState("잠시 문제가 있었어요");
   const [preview, setPreview] = useState<string | null>(null);
+  // 보호자가 준 링크의 토큰. null 이면 아직 링크로 연 적이 없다. undefined 는 확인 전.
+  const [token, setToken] = useState<string | null | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   // 사진을 고를 때마다 올라간다. 늦게 끝난 압축이 최신 선택을 덮어쓰지 못하게.
@@ -43,6 +46,12 @@ export default function Elder() {
     const t = setInterval(() => setSeconds((n) => n + 1), 1000);
     return () => clearInterval(t);
   }, [stage]);
+
+  // 링크의 토큰을 읽고 주소창에서 지운다. 한 번 열면 폰에 남는다.
+  useEffect(() => {
+    const t = setTimeout(() => setToken(readElderToken()), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   // 화면을 떠나면 진행 중인 것을 전부 멈춘다. 압축 중이어도 마찬가지다.
   useEffect(() => {
@@ -63,7 +72,7 @@ export default function Elder() {
     };
   }, [preview]);
 
-  const submit = useCallback(async (f: File, pick: number) => {
+  const submit = useCallback(async (f: File, pick: number, h: string) => {
     if (pick !== pickRef.current || !mountedRef.current) return;
     abortRef.current?.abort();
     const ac = new AbortController();
@@ -75,8 +84,16 @@ export default function Elder() {
     try {
       const fd = new FormData();
       fd.append("file", f);
+      fd.append("h", h);
       const res = await fetch("/api/documents", { method: "POST", body: fd, signal: ac.signal });
       if (stale()) return;
+      if (res.status === 401) {
+        // 링크가 더 이상 유효하지 않다. 저장된 토큰을 지워 다음엔 안내 화면이 뜨게 한다.
+        clearElderToken();
+        setToken(null);
+        setStage("idle");
+        return;
+      }
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `업로드 실패 ${res.status}`);
@@ -84,7 +101,7 @@ export default function Elder() {
       const { id } = (await res.json()) as { id: string };
 
       setStage("waiting");
-      const result = await pollDocument(id, { signal: ac.signal });
+      const result = await pollDocument(id, { signal: ac.signal, elderToken: h });
       if (stale()) return;
 
       if (!result.phrases || !result.result) {
@@ -120,7 +137,8 @@ export default function Elder() {
     setStage("uploading");
     setSeconds(0);
     const { file } = await compress(f);
-    await submit(file, pick);
+    if (!token) return;
+    await submit(file, pick, token);
   }
 
   function onShoot() {
@@ -140,8 +158,29 @@ export default function Elder() {
     setStage("idle");
   }
 
+  if (token === undefined) {
+    return <main className="min-h-dvh bg-paper" aria-busy="true" />;
+  }
+
+  // 링크 없이 열었다. 계정이 없으니 할 수 있는 게 없다 — 보호자에게 받아야 한다.
+  if (token === null) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 px-6 py-10 text-center">
+        <span className="text-brand">
+          <Envelope size={56} />
+        </span>
+        <h1 className="text-lead text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
+        <p className="text-body text-ink-mid">
+          이 화면은 자녀분 계정과 연결돼야 합니다.
+          <br />
+          자녀분께 &ldquo;독도 링크&rdquo;를 보내 달라고 말씀해 주세요.
+        </p>
+      </main>
+    );
+  }
+
   if (stage === "done" && doc) {
-    return <ElderResult doc={doc} onReset={reset} />;
+    return <ElderResult doc={doc} elderToken={token} onReset={reset} />;
   }
 
   const progress = Math.min(0.92, seconds / OBSERVED_MAX_S);
