@@ -17,7 +17,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 function hhmm(t: string) {
   const d = new Date(t);
-  return isNaN(d.getTime()) ? "" : d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return isNaN(d.getTime()) ? "" : d.toLocaleTimeString("ko-KR", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 export default function AgentTrace({ status, trace, result }: { status: string; trace: TraceStep[]; result: ActionResult | null }) {
