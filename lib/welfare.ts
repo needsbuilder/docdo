@@ -41,7 +41,15 @@ export function findRelatedBenefits(result: VerifyResult): Benefit[] {
   const matched = matchIssuer(result.fields.issuer);
   if (!matched || matched.match !== "exact") return [];
 
-  return ROWS.filter((r) => r.triggers.includes(matched.issuer.issuer_id)).map(
-    ({ triggers: _triggers, ...b }) => b,
-  );
+  // triggers 는 내부 매칭용이다. 화면으로 내보내지 않는다.
+  return ROWS.filter((r) => r.triggers.includes(matched.issuer.issuer_id)).map((r) => ({
+    id: r.id,
+    name: r.name,
+    agency: r.agency,
+    target: r.target,
+    howTo: r.howTo,
+    contact: r.contact,
+    sourceUrl: r.sourceUrl,
+    verifiedAt: r.verifiedAt,
+  }));
 }
