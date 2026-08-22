@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { store, storeKind } from "@/lib/store";
 import { uploadFile, createJob } from "@/lib/upstage";
+import { clientKey, takeToken } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -9,9 +10,41 @@ export const maxDuration = 30;
 const MAX_BYTES = 4 * 1024 * 1024;
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 
+// 인스턴스를 가로지르는 전역 상한. 호출 1건이 Upstage 크레딧 약 $0.04 다.
+const GLOBAL_HOURLY_CAP = 40;
+const HOUR_MS = 60 * 60 * 1000;
+
+async function overGlobalCap(): Promise<boolean> {
+  try {
+    const since = Date.now() - HOUR_MS;
+    const recent = (await store().list(GLOBAL_HOURLY_CAP + 1)).filter(
+      (d) => Date.parse(d.created_at) >= since,
+    );
+    return recent.length >= GLOBAL_HOURLY_CAP;
+  } catch {
+    // 저장소를 못 읽으면 상한을 근거로 막지 않는다. 뒤의 insert 에서 어차피 실패한다.
+    return false;
+  }
+}
+
 /** 사진을 받아 Upstage job 을 만들고 **즉시** 반환한다.
  *  여기서 완료를 기다리면 서버리스 함수가 최대 26초를 붙잡고 있게 된다. */
 export async function POST(req: Request) {
+  // 공개 API 다. 인증을 붙일 시간이 없으므로 최소한 반복 호출은 막는다.
+  const gate = takeToken(clientKey(req));
+  if (!gate.ok) {
+    return NextResponse.json(
+      { error: "잠시 후 다시 시도해 주세요" },
+      { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
+    );
+  }
+  if (await overGlobalCap()) {
+    return NextResponse.json(
+      { error: "지금은 체험 요청이 많습니다. 잠시 후 다시 시도해 주세요" },
+      { status: 429, headers: { "Retry-After": "300" } },
+    );
+  }
+
   let file: FormDataEntryValue | null;
   try {
     file = (await req.formData()).get("file");
