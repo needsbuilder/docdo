@@ -21,6 +21,16 @@ afterEach(async () => {
 });
 
 describe("store — 어댑터 선택", () => {
+  it("배포(VERCEL)에서 Supabase 가 없으면 기동을 막는다", async () => {
+    process.env.VERCEL = "1";
+    try {
+      const { store } = await import("@/lib/store");
+      expect(() => store()).toThrow(/SUPABASE_URL/);
+    } finally {
+      delete process.env.VERCEL;
+    }
+  });
+
   it("Supabase 설정이 없으면 파일 저장소", async () => {
     const { storeKind } = await import("@/lib/store");
     expect(storeKind()).toBe("file");

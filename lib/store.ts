@@ -8,7 +8,8 @@ import type { Phrases } from "./phrase";
 // 어댑터를 둘 둔다:
 //   supabase — 배포용. 어르신 폰과 자녀 폰이 서로 다른 서버 인스턴스에 붙어도 같은 행을 본다.
 //   file     — 로컬 개발용. Supabase 설정이 없어도 전체 흐름이 돌아간다.
-// 배포에서 file 로 떨어지면 인스턴스마다 상태가 갈려 닫힌 루프가 깨진다. 그래서 경고를 남긴다.
+// 배포에서 file 로 떨어지면 인스턴스마다 상태가 갈려 닫힌 루프가 깨진다. 그래서 배포에서는 막는다.
+// 파일 어댑터는 **프로세스 하나**에서만 안전하다. 여러 프로세스가 같은 파일을 쓰면 서로 덮어쓴다.
 
 export const HOUSEHOLD = "demo";
 const LIST_LIMIT = 50;
@@ -125,13 +126,18 @@ function serialize<T>(fn: () => Promise<T>): Promise<T> {
 async function readAll(): Promise<DocRow[]> {
   const { readFile } = await import("node:fs/promises");
   const { join } = await import("node:path");
+  let raw: string;
   try {
-    const raw = await readFile(join(dataDir(), "documents.json"), "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as DocRow[]) : [];
-  } catch {
-    return [];
+    raw = await readFile(join(dataDir(), "documents.json"), "utf8");
+  } catch (e) {
+    // 파일이 아직 없는 것만 빈 목록이다. 권한·I/O 오류를 빈 목록으로 바꾸면
+    // 다음 insert 가 기존 데이터를 통째로 지운다.
+    if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw e;
   }
+  const parsed = JSON.parse(raw); // 깨진 JSON 은 그대로 던진다
+  if (!Array.isArray(parsed)) throw new Error("documents.json 이 배열이 아님");
+  return parsed as DocRow[];
 }
 
 async function writeAll(rows: DocRow[]): Promise<void> {
@@ -191,16 +197,12 @@ const fileStore: DocStore = {
   },
 };
 
-let warned = false;
-
 export function store(): DocStore {
   if (storeKind() === "supabase") return supabaseStore;
-  if (process.env.VERCEL && !warned) {
-    warned = true;
-    console.warn(
-      "[docdo] SUPABASE_URL 이 없어 파일 저장소로 동작합니다. " +
-        "배포에서는 인스턴스마다 상태가 갈려 자녀 화면이 문서를 못 찾습니다.",
-    );
+  // 서버리스에서 파일 저장소는 인스턴스마다 따로 논다. 자녀 화면이 문서를 못 찾고,
+  // 전역 상한도 세지 못한다. 경고로 넘기지 않고 막는다.
+  if (process.env.VERCEL) {
+    throw new Error("배포 환경에는 SUPABASE_URL / SUPABASE_ANON_KEY 가 필요합니다");
   }
   return fileStore;
 }

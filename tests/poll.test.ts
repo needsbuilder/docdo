@@ -7,7 +7,6 @@ const base: DocView = {
   id: "d1",
   pipeline_status: "queued",
   resolution_status: "new",
-  action_type: null,
   verdict: null,
   result: null,
   phrases: null,
@@ -21,7 +20,7 @@ const done = {
   ...base,
   pipeline_status: "completed",
   verdict: "clear",
-  result: { verdict: "clear", checks: [], reasons: [] },
+  result: { verdict: "clear", speechSuppressed: false, failedKinds: [] },
   phrases: { docLabel: "건강보험료", screenLines: ["3만 2천원"], speech: "..." },
 } as unknown as DocView;
 
@@ -44,10 +43,12 @@ describe("pollDocument", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
-  it("서버가 error 를 주면 매달리지 않는다", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(res({ ...base, pipeline_status: "error" }));
+  it("서버가 failed + error 로 굳힌 행은 종결이다", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(res({ ...base, pipeline_status: "failed", error: "연결 실패" }));
     const r = await pollDocument("d1", { fetchImpl, intervalMs: 1 });
-    expect(r.pipeline_status).toBe("error");
+    expect(r.pipeline_status).toBe("failed");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 

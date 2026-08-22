@@ -28,13 +28,18 @@ export const WELFARE_VERSION = (snapshot as unknown as { version: string }).vers
 
 // 추출을 신뢰할 수 없거나 발신이 의심스러운 문서에서는 제도를 권하지 않는다.
 // 사칭본을 통로로 삼아 "공단에 전화하세요"를 띄우면 사칭이 신뢰를 얻는다.
-const TRUSTED: ReadonlySet<Verdict> = new Set<Verdict>(["clear", "review", "not_checkable"]);
+// clear 하나만. review·not_checkable 은 "대조를 못 했다"는 뜻이지 발신이 확인됐다는 뜻이 아니다.
+const TRUSTED: ReadonlySet<Verdict> = new Set<Verdict>(["clear"]);
 const SKIP_TYPES = new Set(["ad", "other"]);
 
 export function findRelatedBenefits(result: VerifyResult): Benefit[] {
   if (!result?.fields) return [];
   if (SKIP_TYPES.has(result.actionType ?? "")) return [];
   if (!TRUSTED.has(result.verdict)) return [];
+  // 기관명 자체의 읽기가 불확실하면 권하지 않는다.
+  if (result.fieldConfidence?.issuer !== "high") return [];
+  // 대조에서 실제로 통과한 검사가 하나는 있어야 한다. 0/0 clear 는 없지만 방어한다.
+  if (!result.checksPassed || result.checksPassed < 1) return [];
 
   // 하위 조직 표기(구조만 맞는 이름)로는 권하지 않는다.
   // `국민연금공단 포항지사`와 `국민건강보험공단가짜환급센터`를 구분할 수 없기 때문이다.

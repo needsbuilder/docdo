@@ -26,8 +26,12 @@ export default function Elder() {
   const [stage, setStage] = useState<Stage>("idle");
   const [seconds, setSeconds] = useState(0);
   const [doc, setDoc] = useState<DocView | null>(null);
+  const [errorText, setErrorText] = useState("잠시 문제가 있었어요");
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // 사진을 고를 때마다 올라간다. 늦게 끝난 압축이 최신 선택을 덮어쓰지 못하게.
+  const pickRef = useRef(0);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     if (stage !== "uploading" && stage !== "waiting") return;
@@ -35,38 +39,59 @@ export default function Elder() {
     return () => clearInterval(t);
   }, [stage]);
 
-  // 화면을 떠나면 폴링을 멈춘다.
-  useEffect(() => () => abortRef.current?.abort(), []);
+  // 화면을 떠나면 진행 중인 것을 전부 멈춘다. 압축 중이어도 마찬가지다.
+  useEffect(() => {
+    const picks = pickRef;
+    const aborts = abortRef;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      picks.current++;
+      aborts.current?.abort();
+    };
+  }, []);
 
-  const submit = useCallback(async (f: File) => {
+  const submit = useCallback(async (f: File, pick: number) => {
+    if (pick !== pickRef.current || !mountedRef.current) return;
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
+    const stale = () => pick !== pickRef.current || ac.signal.aborted || !mountedRef.current;
+
     setStage("uploading");
     setSeconds(0);
     try {
       const fd = new FormData();
       fd.append("file", f);
-      const res = await fetch("/api/documents", {
-        method: "POST",
-        body: fd,
-        signal: ac.signal,
-      });
-      if (!res.ok) throw new Error(`업로드 실패 ${res.status}`);
+      const res = await fetch("/api/documents", { method: "POST", body: fd, signal: ac.signal });
+      if (stale()) return;
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `업로드 실패 ${res.status}`);
+      }
       const { id } = (await res.json()) as { id: string };
 
       setStage("waiting");
       const result = await pollDocument(id, { signal: ac.signal });
-      if (ac.signal.aborted) return;
+      if (stale()) return;
 
+      // 문구가 없으면 결과 화면을 띄울 수 없다. 흰 화면 대신 오류로 보낸다.
+      if (!result.phrases || !result.result) {
+        setErrorText(result.error ?? "이 사진을 처리하지 못했어요");
+        setStage("error");
+        return;
+      }
       setDoc(result);
       setStage("done");
-      if (result.phrases?.speech) speak(result.phrases.speech);
+      speak(result.phrases.speech);
     } catch (e) {
-      if (ac.signal.aborted) return;
+      if (stale()) return;
       setStage("error");
       if (e instanceof PollTimeout) {
+        setErrorText("판독이 예상보다 오래 걸리고 있어요");
         speak("판독이 예상보다 오래 걸리고 있어요. 잠시 후 다시 찍어 주세요.");
+      } else {
+        setErrorText(e instanceof Error && e.message ? e.message : "잠시 문제가 있었어요");
       }
     }
   }, []);
@@ -76,8 +101,12 @@ export default function Elder() {
     // 같은 파일을 다시 골라도 change 가 뜨도록 값을 비운다.
     e.target.value = "";
     if (!f) return;
+    const pick = ++pickRef.current;
+    // 압축에도 몇 초가 걸린다. 그동안 화면이 멈춰 보이면 안 된다.
+    setStage("uploading");
+    setSeconds(0);
     const { file } = await compress(f);
-    await submit(file);
+    await submit(file, pick);
   }
 
   function onShoot() {
@@ -87,16 +116,15 @@ export default function Elder() {
     inputRef.current?.click();
   }
 
+  function reset() {
+    pickRef.current++;
+    abortRef.current?.abort();
+    setDoc(null);
+    setStage("idle");
+  }
+
   if (stage === "done" && doc) {
-    return (
-      <ElderResult
-        doc={doc}
-        onReset={() => {
-          setDoc(null);
-          setStage("idle");
-        }}
-      />
-    );
+    return <ElderResult doc={doc} onReset={reset} />;
   }
 
   return (
@@ -139,11 +167,9 @@ export default function Elder() {
 
       {stage === "error" && (
         <div className="flex flex-col items-center gap-6">
-          <p className="text-center text-2xl font-semibold leading-relaxed">
-            잠시 문제가 있었어요
-          </p>
+          <p className="text-center text-2xl font-semibold leading-relaxed">{errorText}</p>
           <button
-            onClick={() => setStage("idle")}
+            onClick={reset}
             className="rounded-2xl bg-[#1a4f8b] px-8 py-5 text-2xl font-bold text-white"
           >
             다시 찍기

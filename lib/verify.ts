@@ -26,10 +26,13 @@ const ALLOWED_SCHEME = new Set(["http", "https"]);
 const BRANCH_TAIL =
   /^[가-힣A-Za-z0-9]{0,24}(지역본부|출장소|사무소|담당관|지사|지점|센터|본부|과|팀|반|부)$/;
 
-// 전화번호 토큰. 구분자로 이어진 숫자 덩어리를 각각 뽑는다.
-const PHONE_TOKEN = /[0-9][0-9\s.\-‐-―]*[0-9]|[0-9]/g;
+// 전화번호 토큰. 하이픈·점·괄호로 이어진 숫자 덩어리 하나가 번호 하나다.
+// **공백·줄바꿈·쉼표는 번호 사이의 경계다.** 토큰 안에 넣으면
+// `1577-1000 010-4821-7733` 이 한 덩어리가 되어 휴대전화 검사가 빠져나간다.
+const PHONE_TOKEN = /[0-9][0-9.\-‐-―()]*[0-9]|[0-9]/g;
 const PHONE_MIN_FULL = 9; // 국내 유선 전체 번호 자릿수
 const PHONE_MAX_FULL = 11;
+const MOBILE_LEN = new Set([10, 11]); // 010-XXX-XXXX / 010-XXXX-XXXX
 
 // Studio 파이프라인이 내는 분류 타입. 이 밖의 값은 신뢰하지 않는다.
 const DOC_TYPES = new Set(["pay", "apply", "info", "ad"]);
@@ -90,9 +93,12 @@ export function phoneTokens(raw: unknown): string[] {
   return [...out];
 }
 
+/** 완성된 휴대전화 번호(10~11자리)만 휴대전화로 본다. `010` 세 자리는 번호가 아니다. */
+const isMobileToken = (t: string) => MOBILE.test(t) && MOBILE_LEN.has(t.length);
+
 /** 기관은 대표번호(15xx/16xx/18xx/국번없는 3자리/지역번호)를 쓴다.
  *  상담 번호 중 하나라도 개인 휴대전화면 이상 신호다. */
-export const isPersonalMobile = (p: unknown) => phoneTokens(p).some((t) => MOBILE.test(t));
+export const isPersonalMobile = (p: unknown) => phoneTokens(p).some(isMobileToken);
 
 /** 실제 달력 날짜인지 본다. `2026-99-99` 를 통과시키면 "구십구월 구십구일"을 낭독한다. */
 export function isValidDate(v: unknown): boolean {
@@ -461,7 +467,7 @@ export function verify(job: unknown): VerifyResult {
   // R4 — 개인 휴대전화 상담번호 (레지스트리 등록 여부와 무관하게 본다)
   const phone = asText(fields.contact_phone);
   const tokens = phoneTokens(phone);
-  const mobileHit = tokens.some((t) => MOBILE.test(t));
+  const mobileHit = tokens.some(isMobileToken);
   const mobileStrong = mobileHit && conf.contact_phone === "high";
   if (mobileHit) {
     out.reasons.push({

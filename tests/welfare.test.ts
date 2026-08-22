@@ -7,7 +7,10 @@ const nhisBill: VerifyResult = {
   actionType: "pay",
   checks: [],
   reasons: [],
+  checksPassed: 1,
+  checksTotal: 1,
   fields: { issuer: "국민건강보험공단", doc_title: "건강보험료 납입고지서" },
+  fieldConfidence: { issuer: "high" },
 };
 
 describe("findRelatedBenefits", () => {

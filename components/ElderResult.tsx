@@ -40,7 +40,17 @@ export default function ElderResult({ doc, onReset }: { doc: DocView; onReset: (
 
   const p = cur.phrases;
   const r = cur.result;
-  if (!p || !r) return null;
+  // 문구·판정이 없으면 이 화면을 띄울 수 없다. 흰 화면 대신 처음으로 돌려보낸다.
+  if (!p || !r) {
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 p-6">
+        <p className="text-center text-2xl font-semibold leading-relaxed">이 사진을 처리하지 못했어요</p>
+        <button onClick={onReset} className="rounded-2xl bg-[#1a4f8b] px-8 py-5 text-2xl font-bold text-white">
+          다시 찍기
+        </button>
+      </main>
+    );
+  }
 
   const danger = r.verdict === "mismatch";
   const safePhone = r.safeContact?.phones?.[0];

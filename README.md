@@ -95,13 +95,14 @@ npm run dev                  # http://localhost:3000
 | `UPSTAGE_AGENT_ID` | 필수 | `agt_PNZaixnk4TZxkDg5muEJQi` |
 | `SUPABASE_URL` | 선택 | 없으면 `.data/` 파일 저장소로 자동 전환된다 |
 | `SUPABASE_ANON_KEY` | 선택 | 위와 같다 |
+| `GUARDIAN_PASSPHRASE` | 필수 | 자녀 화면 암구호(6자 이상). 부모님 우편물 원문을 보는 화면이라 없으면 열리지 않는다 |
 
 Supabase 없이도 전체 흐름이 로컬에서 돈다. 스키마는 `supabase/schema.sql`.
 
 ### 시험
 
 ```bash
-npm test    # 243개
+npm test    # 279개
 ```
 
 `tests/verify.test.ts` 는 공격·결손 입력 19종 회귀,
@@ -117,8 +118,13 @@ npm test    # 243개
 - **지원**: iPhone Safari · 데스크톱 웹. **Android 는 테스트하지 않았다.**
 - **iOS 음성**: 무음(벨소리) 스위치가 켜져 있으면 소리가 나지 않는다. 하드웨어라 코드로 풀 수 없다.
   첫 발화는 사용자 제스처 안에서 잠금을 푼다(`lib/speak.ts`).
+- **자녀 화면과 문서 API 는 공유 암구호 하나로 보호된다** (`GUARDIAN_PASSPHRASE`, HttpOnly 쿠키).
+  데모 규모의 최소 인증이다. 실서비스에는 가구별 계정이 필요하다.
+- **어르신 업로드는 인증하지 않는다** — 어르신에게 로그인을 시킬 수 없다.
+  대신 어르신이 받는 응답에는 **문서 원문 필드가 없고**(문구·판정·공식 연락처만),
+  IP당·전역 속도 제한이 걸려 있다.
 - **데모용 Supabase 는 RLS 비활성이며 운영 설정이 아니다.** 가구는 `demo` 하나로 고정돼 있다.
-  실서비스에는 가구별 인증과 RLS 정책이 반드시 필요하다.
+  anon key 는 서버에서만 쓰이고 브라우저 번들에 들어가지 않는다.
 - **원본 사진은 판독이 끝나면 Upstage 에서 삭제한다.** 우리 DB 에 이미지를 저장하지 않는다.
 - **허용목록 밖 필드는 저장하지 않는다.** `account_number`·`recipient_name` 등은 폐기된다.
 - `fixtures/` 의 문서는 **전부 팀이 만든 합성 견본**이다.

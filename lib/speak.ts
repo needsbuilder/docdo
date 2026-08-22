@@ -5,8 +5,16 @@
 //   2) **첫 발화는 사용자 제스처 안에서 일어나야 한다.** 판독이 끝난 뒤(비동기 콜백)
 //      speak() 를 부르면 iOS Safari 가 조용히 무시한다.
 //      그래서 '사진 찍기' 버튼을 누르는 순간 빈 발화로 잠금을 푼다(prime).
+//
+// 예약된 발화(음성 목록 대기)는 세대 번호로 묶는다. stopSpeaking() 이나 다음 speak() 가
+// 오면 이전 예약은 절대 발화되지 않는다 — 지난 문서의 금액이 600ms 뒤에 튀어나오면 안 된다.
 
 const RATE = 0.85;
+const VOICE_WAIT_MS = 600;
+
+let generation = 0;
+let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingListener: (() => void) | null = null;
 
 function synth(): SpeechSynthesis | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
@@ -18,12 +26,18 @@ function koreanVoice(s: SpeechSynthesis): SpeechSynthesisVoice | null {
   return s.getVoices().find((v) => v.lang?.toLowerCase().startsWith("ko")) ?? null;
 }
 
+function clearPending(s: SpeechSynthesis | null) {
+  if (pendingTimer) clearTimeout(pendingTimer);
+  if (pendingListener && s) s.removeEventListener("voiceschanged", pendingListener);
+  pendingTimer = null;
+  pendingListener = null;
+}
+
 /** 사용자 제스처 안에서 부른다. 이후의 프로그램적 speak() 가 허용된다. */
 export function primeSpeech(): void {
   const s = synth();
   if (!s) return;
   try {
-    // 목록 로드를 촉발한다.
     s.getVoices();
     const u = new SpeechSynthesisUtterance(" ");
     u.volume = 0;
@@ -38,7 +52,13 @@ export function primeSpeech(): void {
 export function speak(text: string, rate = RATE): void {
   const s = synth();
   if (!s || !text) return;
+  const gen = ++generation;
+  clearPending(s);
+
   const say = () => {
+    // 그 사이 다른 speak()/stop 이 왔으면 이 발화는 버린다.
+    if (gen !== generation) return;
+    clearPending(s);
     s.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = "ko-KR";
@@ -47,23 +67,20 @@ export function speak(text: string, rate = RATE): void {
     if (ko) u.voice = ko;
     s.speak(u);
   };
-  if (s.getVoices().length === 0) {
-    // 음성 목록이 아직 없으면 한 번만 기다렸다가 말한다.
-    const once = () => {
-      s.removeEventListener("voiceschanged", once);
-      say();
-    };
-    s.addEventListener("voiceschanged", once);
-    // voiceschanged 가 끝내 오지 않는 브라우저도 있다.
-    setTimeout(() => {
-      s.removeEventListener("voiceschanged", once);
-      say();
-    }, 600);
+
+  if (s.getVoices().length > 0) {
+    say();
     return;
   }
-  say();
+  // 음성 목록이 아직 없으면 한 번만 기다렸다가 말한다. 둘 중 먼저 오는 쪽이 말하고 나머지는 지운다.
+  pendingListener = say;
+  s.addEventListener("voiceschanged", pendingListener, { once: true });
+  pendingTimer = setTimeout(say, VOICE_WAIT_MS);
 }
 
 export function stopSpeaking(): void {
-  synth()?.cancel();
+  generation++;
+  const s = synth();
+  clearPending(s);
+  s?.cancel();
 }

@@ -151,9 +151,17 @@ export function buildPhrases(r: VerifyResult): Phrases {
   const docLabel = shortLabel(f.doc_title);
   // "우편물 우편물이에요" 가 되지 않게 기본 라벨일 때는 한 번만 쓴다.
   const subject = docLabel === "우편물" ? "우편물" : `${docLabel} 우편물`;
-  const amount = parseAmount(f.amount_krw);
-  const dueRaw = String(f.due_date ?? f.apply_deadline ?? "");
-  const due = isoParts(dueRaw) ? dueRaw : "";
+  // 숫자마다 해당 필드 신뢰도를 다시 본다. verify 가 억제했더라도 여기서 한 번 더 잠근다.
+  const conf = r.fieldConfidence ?? {};
+  const amount = conf.amount_krw === "high" ? parseAmount(f.amount_krw) : null;
+  // due_date 가 빈 문자열이면 apply_deadline 을 가리지 않게 유효한 첫 값을 쓴다.
+  const dueRaw = [
+    conf.due_date === "high" ? f.due_date : null,
+    conf.apply_deadline === "high" ? f.apply_deadline : null,
+  ]
+    .map((v) => String(v ?? ""))
+    .find((v) => isoParts(v)) ?? "";
+  const due = dueRaw;
 
   // 원칙 5 — 문서의 번호로 전화하지 말라고 알린다. 공식 번호는 화면이 레지스트리에서 가져온다.
   // 설계서 §5.2 가 승인한 문구다. 보호 경고이지 납부 지시가 아니다.
@@ -185,16 +193,18 @@ export function buildPhrases(r: VerifyResult): Phrases {
   }
 
   // 의도적 미매핑 타입(광고 등). 폐기를 지시하지 않는다 — 자녀 목록에는 그대로 남는다.
+  // "급하지 않다"고도 말하지 않는다. 분류는 확률적이다 — 단전 통지서가 광고로 오면 방치가 된다.
   if (r.verdict === "no_extract") {
     return {
       docLabel,
-      screenLines: ["급히 처리할 내용은", "찾지 못했어요"],
-      speech: `어르신, ${subject}이에요. 급히 처리할 내용은 찾지 못했어요. 자녀분께 보내드렸어요.`,
+      screenLines: ["자동으로 읽는 문서가 아니에요", "자녀분께 보내드렸어요"],
+      speech: `어르신, ${subject}이에요. 자동으로 읽는 종류의 문서가 아니라서 내용은 확인하지 못했어요. 자녀분께 보내드렸어요.`,
     };
   }
 
   // 원칙 2 — low 이거나 결손이면 숫자를 말하지 않는다.
-  if (r.speechSuppressed) {
+  // speechSuppressed 가 **명시적으로 false** 일 때만 숫자를 읽는다. 없으면 억제다.
+  if (r.speechSuppressed !== false) {
     return {
       docLabel,
       screenLines: ["정확히 읽지 못했어요", "자녀분께 확인을 부탁드렸어요"],

@@ -96,11 +96,13 @@ export async function fetchJob(jobId: string): Promise<AgentJob> {
   })) as AgentJob;
 }
 
-/** 원본 사진은 판독이 끝나면 지운다. 실패해도 사용자 흐름을 막지 않는다. */
-export async function deleteFile(fileId: string): Promise<void> {
+/** 원본 사진은 판독이 끝나면 지운다. 실패해도 흐름을 막지 않되, 실패했다는 사실은 돌려준다. */
+export async function deleteFile(fileId: string): Promise<boolean> {
   try {
     await req(`/files/${encodeURIComponent(fileId)}`, { method: "DELETE" });
-  } catch {
-    /* 삭제 실패는 흐름을 막지 않는다 */
+    return true;
+  } catch (e) {
+    console.error("[upstage] 파일 삭제 실패", fileId, e);
+    return false;
   }
 }

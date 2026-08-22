@@ -52,12 +52,14 @@ describe("buildPhrases", () => {
     actionType: "pay",
     checks: [],
     reasons: [],
+    speechSuppressed: false,
     fields: {
       doc_title: "건강보험료 납입고지서",
       amount_krw: 32000,
       due_date: "2026-08-30",
       issuer: "국민건강보험공단",
     },
+    fieldConfidence: { amount_krw: "high", due_date: "high", issuer: "high" },
   };
 
   it("정상이면 금액과 기한을 말하되 지시하지 않는다", () => {
@@ -122,7 +124,7 @@ describe("buildPhrases", () => {
   });
 
   it("추출 결과가 없어도 '우편물 우편물' 같은 문구가 나오지 않는다", () => {
-    const p = buildPhrases({ verdict: "no_extract", checks: [], reasons: [] });
+    const p = buildPhrases({ verdict: "no_extract", checks: [], reasons: [], speechSuppressed: false });
     expect(p.docLabel).toBe("우편물");
     expect(p.speech).not.toMatch(/우편물\s*우편물/);
   });
@@ -156,7 +158,9 @@ describe("buildPhrases", () => {
       actionType: "apply",
       checks: [],
       reasons: [],
+      speechSuppressed: false,
       fields: { doc_title: "기초연금 신청 안내", apply_deadline: "2026-09-15" },
+      fieldConfidence: { apply_deadline: "high" },
     });
     expect(p.screenLines.join(" ")).toContain("9월 15일");
     expect(p.speech).toContain("구월 십오일");

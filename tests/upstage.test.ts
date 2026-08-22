@@ -144,9 +144,16 @@ describe("upstage — deleteFile", () => {
     expect(init.method).toBe("DELETE");
   });
 
-  it("삭제 실패는 흐름을 막지 않는다", async () => {
+  it("삭제 실패는 흐름을 막지 않되 false 를 돌려준다", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network down")));
+    vi.spyOn(console, "error").mockImplementation(() => {});
     const { deleteFile } = await import("@/lib/upstage");
-    await expect(deleteFile("file_9")).resolves.toBeUndefined();
+    await expect(deleteFile("file_9")).resolves.toBe(false);
+  });
+
+  it("삭제 성공은 true", async () => {
+    mockOk({});
+    const { deleteFile } = await import("@/lib/upstage");
+    await expect(deleteFile("file_9")).resolves.toBe(true);
   });
 });
