@@ -118,6 +118,14 @@ export function shortLabel(title: unknown): string {
  *  예금주 불일치인데 "연락처가 달라요"라고 하면 확인된 사실을 잘못 전달하는 것이다. */
 function mismatchWording(r: VerifyResult): { screenLines: string[]; what: string } {
   const kinds = new Set(r.checks.filter((c) => c.ok === false).map((c) => c.kind));
+  // 여러 개가 어긋났으면 어르신이 가장 알아듣기 쉬운 것부터 말한다.
+  // 공공기관은 010 번호를 쓰지 않는다 — 이게 가장 구체적이고 즉시 이해된다.
+  if (kinds.has("mobile")) {
+    return {
+      screenLines: ["이 문서에 적힌 상담 번호가", "개인 휴대전화입니다"],
+      what: "이 종이에 적힌 상담 번호가 개인 휴대전화예요",
+    };
+  }
   if (kinds.has("payee")) {
     return {
       screenLines: ["이 문서에 적힌 예금주가", "발급기관 이름과 다릅니다"],
@@ -128,12 +136,6 @@ function mismatchWording(r: VerifyResult): { screenLines: string[]; what: string
     return {
       screenLines: ["이 문서에 적힌 인터넷 주소가", "공식 주소와 다릅니다"],
       what: "이 종이에 적힌 인터넷 주소가 공식 주소와 달라요",
-    };
-  }
-  if (kinds.has("mobile")) {
-    return {
-      screenLines: ["이 문서에 적힌 상담 번호가", "개인 휴대전화입니다"],
-      what: "이 종이에 적힌 상담 번호가 개인 휴대전화예요",
     };
   }
   return {
