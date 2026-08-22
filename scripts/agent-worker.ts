@@ -41,6 +41,8 @@ const SITES: Record<string, { url: string; hosts: string[] }> = {
 };
 // 되돌릴 수 없는 버튼. 누르기 전에 화면에 문서 금액이 보여야 한다.
 const IRREVERSIBLE = /납부|결제|이체|송금|승인/;
+// 절대 누르지 않는 것. 페이지 본문이 모델 입력에 들어가므로(인젝션) 모델이 골라도 코드가 거부한다.
+const FORBIDDEN = /자동이체|회원가입|탈퇴|해지|대출|카드\s*발급|예약납부|분할|환급\s*신청|송금\s*등록/;
 // 사람 차례 신호. 보이면 모델이 뭐라 하든 멈춘다.
 const HUMAN = /비밀번호|인증서|본인인증|보안\s*키패드|OTP|공동인증|금융인증|간편인증/;
 const HEADED = process.env.AGENT_HEADED === "1";
@@ -102,6 +104,12 @@ async function waitForHuman(page: Page, docId: string, reason: string, hint: str
     .catch(() => {});
   await page.waitForTimeout(300);
   await api(`/api/agent/${docId}`, { wait: { reason, hint, mode }, step: { title: "보호자 차례 — " + reason, detail: hint, shot: await shot(page).catch(() => undefined) } });
+  // 대기 전에 쌓인 입력은 다른 화면을 향한 것이다. 실행하지 않고 버린다.
+  {
+    const r0 = await api(`/api/agent/${docId}`, { consumed: [] });
+    const { inputs: stale = [] } = (await r0.json().catch(() => ({}))) as { inputs?: AgentInput[] };
+    if (stale.length) await api(`/api/agent/${docId}`, { consumed: stale.map((i) => i.id) });
+  }
   const deadline = Date.now() + 10 * 60_000;
   while (Date.now() < deadline) {
     const r = await api(`/api/agent/${docId}`, { consumed: [] });
@@ -130,9 +138,10 @@ async function waitForHuman(page: Page, docId: string, reason: string, hint: str
 }
 
 const won = (n: number) => n.toLocaleString("ko-KR");
+/** 화면에 문서 금액이 "그 숫자 그대로" 보이는가. 173,000 안의 73,000 은 인정하지 않는다. */
 function amountVisible(text: string, amount: number): boolean {
-  const a = won(amount);
-  return text.includes(a) || text.replace(/,/g, "").includes(String(amount));
+  const a = won(amount).replace(/,/g, "[,\\s]?");
+  return new RegExp(`(?<![\\d,.])${a}(?![\\d,])\\s*원`).test(text);
 }
 
 /** Solar 가 화면을 읽고 행동을 고르는 루프. 가드레일은 여기(코드)에 있다. */
@@ -195,6 +204,11 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
       await page.fill(ref.selector, action.text);
       await step(`입력: ${ref.name || ref.role}`, `${action.text} — ${why}`);
     } else if (action.kind === "click" && ref) {
+      // 가드 0: 목표와 무관한 계약·신청 버튼은 모델이 골라도 거부한다.
+      if (FORBIDDEN.test(ref.name)) {
+        await step("목표와 무관한 버튼을 누르려 해서 멈춥니다", ref.name, await shot(page));
+        return finish("blocked", `"${ref.name}" 은 납부와 무관한 행동이라 멈췄습니다`, { reason: "forbidden_click" });
+      }
       // 가드 2: 되돌릴 수 없는 버튼은 화면에 문서 금액이 보일 때만.
       if (IRREVERSIBLE.test(ref.name) && !amountVisible(snap.text, amount)) {
         await step("금액 확인 없이 납부 버튼을 누르려 해서 멈춥니다", ref.name, await shot(page));

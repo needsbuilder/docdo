@@ -129,7 +129,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (action === "approve") {
     if (doc.verdict === "mismatch") return json({ error: "공식 정보와 다른 문서는 처리할 수 없습니다" }, 409);
     if (!doc.result) return json({ error: "판정이 끝나지 않았습니다" }, 409);
-    if (doc.action_status !== "none" && doc.action_status !== "failed" && doc.action_status !== "blocked") return json(toGuardianDoc(doc));
+    // 워커가 죽어 running/waiting 에 박힌 문서는 15분이 지나면 다시 승인할 수 있다. 그 전엔 멱등.
+    const STALE_MS = 15 * 60_000;
+    const stale = doc.approved_at ? Date.now() - new Date(doc.approved_at).getTime() > STALE_MS : true;
+    const active = doc.action_status === "queued" || doc.action_status === "running" || doc.action_status === "waiting";
+    if (active && !stale) return json(toGuardianDoc(doc));
+    if (doc.action_status === "done") return json(toGuardianDoc(doc));
     const data = await db.update(id, {
       action_status: "queued",
       action_trace: [{ t: new Date().toISOString(), title: "보호자가 처리를 승인했습니다" }],
