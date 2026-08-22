@@ -35,6 +35,8 @@ export type DocRow = {
   action_trace: TraceStep[];
   action_result: ActionResult | null;
   approved_at: string | null;
+  // 실행 중 최신 화면(JPEG data URL). 보호자 폰에 실시간으로 보여준다. 끝나면 null.
+  action_live: string | null;
 };
 
 export type ActionStatus = "none" | "queued" | "running" | "done" | "blocked" | "failed";
@@ -100,7 +102,7 @@ function supabase(): SupabaseClient {
 }
 
 const COLUMNS =
-  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at";
+  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at, action_live";
 const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at";
 
 async function gOne(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Guardian | null> {
@@ -253,6 +255,7 @@ const fileStore: DocStore = {
         action_trace: [],
         action_result: null,
         approved_at: null,
+        action_live: null,
         ...doc,
       };
       rows.push(row);

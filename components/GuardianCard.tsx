@@ -155,7 +155,7 @@ export default function GuardianCard({
       )}
 
       {/* 에이전트 */}
-      {d.action_status !== "none" && <AgentTrace status={d.action_status} trace={d.action_trace ?? []} result={d.action_result} />}
+      {d.action_status !== "none" && <AgentTrace status={d.action_status} trace={d.action_trace ?? []} result={d.action_result} live={d.action_live} />}
 
       {/* 행동 */}
       {r && (

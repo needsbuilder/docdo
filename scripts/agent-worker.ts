@@ -32,6 +32,7 @@ const SECRET = process.env.AGENT_SECRET ?? "";
 const ADAPTER = process.env.AGENT_ADAPTER ?? "demo";
 const HEADED = process.env.AGENT_HEADED === "1";
 const POLL_MS = 3000;
+const LIVE_MS = 700;
 if (!SECRET) throw new Error("AGENT_SECRET 없음");
 
 type Doc = {
@@ -44,9 +45,32 @@ type Doc = {
 const api = (path: string, body: unknown) =>
   fetch(`${BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json", "x-agent-secret": SECRET }, body: JSON.stringify(body) });
 
-async function shot(page: Page): Promise<string> {
-  const buf = await page.screenshot({ type: "jpeg", quality: 55, clip: { x: 0, y: 0, width: 900, height: 640 } });
+async function shot(page: Page, quality = 55): Promise<string> {
+  const buf = await page.screenshot({ type: "jpeg", quality, clip: { x: 0, y: 0, width: 900, height: 640 } });
   return `data:image/jpeg;base64,${buf.toString("base64")}`;
+}
+
+/** 실행 중 화면을 보호자 폰으로 계속 보낸다. 단계 기록과 별개로, 실패해도 흐름을 막지 않는다. */
+function startLive(page: Page, docId: string): () => void {
+  let stopped = false;
+  let busy = false;
+  const tick = async () => {
+    if (stopped || busy || page.isClosed()) return;
+    busy = true;
+    try {
+      const live = await shot(page, 40);
+      await api(`/api/agent/${docId}`, { live });
+    } catch {
+      /* 다음 프레임에 다시 */
+    } finally {
+      busy = false;
+    }
+  };
+  const t = setInterval(tick, LIVE_MS);
+  return () => {
+    stopped = true;
+    clearInterval(t);
+  };
 }
 
 async function run(doc: Doc) {
@@ -66,8 +90,9 @@ async function run(doc: Doc) {
 
   await step(`${label} 처리를 시작합니다`, `전자납부번호 ${epn} · 문서 금액 ${amount.toLocaleString("ko-KR")}원`);
 
-  const browser = await chromium.launch({ headless: !HEADED, slowMo: HEADED ? 350 : 0 });
+  const browser = await chromium.launch({ headless: !HEADED, slowMo: Number(process.env.AGENT_SLOWMO ?? (HEADED ? 350 : 0)) });
   const page = await browser.newPage({ viewport: { width: 900, height: 640 }, locale: "ko-KR" });
+  const stopLive = startLive(page, doc.id);
   try {
     if (ADAPTER === "giro") {
       await page.goto("https://www.giro.or.kr/nomember/agreeNoMemberProvision.do", { waitUntil: "domcontentloaded", timeout: 60000 });
@@ -109,6 +134,7 @@ async function run(doc: Doc) {
     return finish("failed", "처리 중 오류가 나서 멈췄습니다. 납부는 되지 않았습니다.", { reason: msg.slice(0, 200) });
   } finally {
     if (HEADED) await page.waitForTimeout(2500);
+    stopLive();
     await browser.close();
   }
 }

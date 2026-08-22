@@ -181,6 +181,29 @@ export default function Guardian() {
     };
   }, [auth, docs]);
 
+  // 에이전트가 돌고 있는 문서는 1초마다 따로 받아 실시간 화면·단계를 그린다.
+  useEffect(() => {
+    if (auth !== "ok") return;
+    const running = docs.filter((d) => d.action_status === "running" || d.action_status === "queued");
+    if (!running.length) return;
+    const ac = new AbortController();
+    const t = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      for (const d of running) {
+        fetch(`/api/documents/${d.id}`, { signal: ac.signal })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((next: GuardianDoc | null) => {
+            if (next?.id) setDocs((ds) => ds.map((x) => (x.id === next.id ? next : x)));
+          })
+          .catch(() => {});
+      }
+    }, 1000);
+    return () => {
+      ac.abort();
+      clearInterval(t);
+    };
+  }, [auth, docs]);
+
   async function approve(id: string) {
     try {
       const res = await fetch(`/api/documents/${id}`, {

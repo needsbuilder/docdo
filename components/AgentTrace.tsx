@@ -20,19 +20,39 @@ function hhmm(t: string) {
   return isNaN(d.getTime()) ? "" : d.toLocaleTimeString("ko-KR", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-export default function AgentTrace({ status, trace, result }: { status: string; trace: TraceStep[]; result: ActionResult | null }) {
+export default function AgentTrace({
+  status,
+  trace,
+  result,
+  live,
+}: {
+  status: string;
+  trace: TraceStep[];
+  result: ActionResult | null;
+  live?: string | null;
+}) {
   const [openShot, setOpenShot] = useState<number | null>(null);
   const st = STATUS[status] ?? STATUS.queued;
-  const live = status === "queued" || status === "running";
+  const active = status === "queued" || status === "running";
   return (
-    <section className="mt-4 rounded-inner bg-well p-4" aria-live={live ? "polite" : undefined}>
+    <section className="mt-4 rounded-inner bg-well p-4" aria-live={active ? "polite" : undefined}>
       <header className="flex items-center justify-between gap-3">
         <h3 className="text-g-body font-bold text-ink">독도가 한 일</h3>
         <span className={`rounded-chip px-2 py-0.5 text-g-meta font-bold ${st.cls}`}>
           {st.label}
-          {live && <span className="ml-1 inline-block animate-pulse">●</span>}
+          {active && <span className="ml-1 inline-block animate-pulse">●</span>}
         </span>
       </header>
+      {live && status === "running" && (
+        <figure className="relative mt-3 overflow-hidden rounded-inner border border-line-soft bg-surface">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={live} alt="독도가 지금 보고 있는 화면" className="block w-full" />
+          <figcaption className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-chip bg-danger px-2 py-0.5 text-g-meta font-bold text-surface">
+            <span className="size-2 animate-pulse rounded-full bg-surface" />
+            실시간
+          </figcaption>
+        </figure>
+      )}
       <ol className="mt-3 space-y-2">
         {trace.map((s, i) => (
           <li key={i} className="grid grid-cols-[4.5em_1fr] gap-x-2 text-g-body">

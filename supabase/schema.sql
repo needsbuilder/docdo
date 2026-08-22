@@ -56,3 +56,6 @@ alter table documents add column if not exists action_trace jsonb not null defau
 alter table documents add column if not exists action_result jsonb;
 alter table documents add column if not exists approved_at timestamptz;
 create index if not exists documents_action_queue_idx on documents (action_status, approved_at) where action_status = 'queued';
+
+-- 실시간 송출: 워커가 올리는 최신 화면(JPEG data URL). 실행 중에만 값이 있고 끝나면 비운다.
+alter table documents add column if not exists action_live text;
