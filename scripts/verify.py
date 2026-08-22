@@ -158,6 +158,23 @@ def verify(job):
     if phone and phone.strip():
         out["checks"].append({"name": "상담 번호 형식", "value": phone,
                               "ok": not mobile_hit, "expected": ["기관 대표번호"], "kind": "mobile"})
+
+    # R6 — 예금주 정합성. 공공기관 고지서의 가상계좌 예금주는 그 기관이어야 한다.
+    # 은행명 대조는 하지 않는다(사기 계좌도 같은 은행에 만들 수 있다). 예금주는 다르다.
+    payee = fields.get("payee_name")
+    if payee and payee.strip():
+        pn = re.sub(r"[\s()\[\]]|주식회사|㈜|\(주\)", "", payee)
+        matched = find_issuer(payee)
+        same = bool(matched) and matched["issuer_id"] == issuer["issuer_id"]
+        if not same:
+            same = any(re.sub(r"\s", "", a) in pn for a in issuer["aliases"])
+        out["checks"].append({"name": "가상계좌 예금주", "value": payee, "ok": same,
+                              "expected": [issuer["display_name"]],
+                              "conf": conf.get("payee_name"), "kind": "payee"})
+        if not same:
+            out["reasons"].append({"rule": "R6",
+                "detail": f"가상계좌 예금주가 발급기관과 다릅니다: '{payee}' (발급기관 {issuer['display_name']})",
+                "action": "이 계좌로 송금하지 말 것. 기관 공식 대표번호로 사실 확인"})
     out["checks"].append({"name": "계좌 진위", "value": None, "ok": None, "expected": None,
                           "note": "확인하지 않음 — 계좌 명의 조회 권한 없음"})
 
@@ -168,7 +185,7 @@ def verify(job):
 
     # 전화번호 단독 불일치는 mismatch로 올리지 않는다 — 기관에는 부서 직통번호가 있다.
     # 확정 신호는 개인 휴대전화(R4)와 도메인 불일치뿐이다.
-    hard_fail = [c for c in failed if c.get("conf") != "low" and c.get("kind") in ("mobile", "host")]
+    hard_fail = [c for c in failed if c.get("conf") != "low" and c.get("kind") in ("mobile", "host", "payee")]
     soft_fail = [c for c in failed if c not in hard_fail]
     if not real:
         out["verdict"] = "not_checkable"
