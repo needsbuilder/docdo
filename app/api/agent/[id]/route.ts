@@ -16,6 +16,8 @@ function json(body: unknown, status = 200) {
 }
 
 type Body = {
+  /** 워커가 claim 때 받은 실행 리스. 문서의 현재 값과 다르면 거부(옛 워커). */
+  run?: string;
   step?: TraceStep;
   status?: string;
   result?: ActionResult;
@@ -36,6 +38,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const db = store();
   const doc = await db.get(id);
   if (!doc || !ACTIVE.has(doc.action_status)) return json({ error: "실행 중인 문서가 아닙니다" }, 409);
+  if (!body.run || body.run !== doc.action_run) return json({ error: "이 실행은 더 이상 유효하지 않습니다" }, 409);
 
   const patch: Parameters<typeof db.update>[1] = {};
   let inputs = doc.action_inputs ?? [];

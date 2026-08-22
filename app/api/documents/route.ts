@@ -127,7 +127,7 @@ export async function GET(req: Request) {
   if (!s) return json({ error: "로그인이 필요합니다" }, 401);
   try {
     const rows = await store().list(s.householdId);
-    return json({ documents: rows.map(toGuardianDoc), store: storeKind() });
+    return json({ documents: rows.map((r) => toGuardianDoc(r, { lite: true })), store: storeKind() });
   } catch (e) {
     console.error("[documents] list 실패", e);
     return json({ error: "목록을 읽지 못했습니다" }, 500);

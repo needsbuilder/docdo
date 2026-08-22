@@ -127,7 +127,14 @@ export default function Guardian() {
       }
       if (!res.ok) return;
       const d = (await res.json()) as { documents?: GuardianDoc[] };
-      setDocs(d.documents ?? []);
+      // 목록은 경량판(화면 없음). 실행 중 문서는 1초 폴링이 가져온 화면·트레이스를 지키며 합친다.
+      setDocs((prev) =>
+        (d.documents ?? []).map((n) => {
+          const old = prev.find((x) => x.id === n.id);
+          const active = n.action_status === "running" || n.action_status === "waiting" || n.action_status === "queued";
+          return old && active ? { ...n, action_trace: old.action_trace?.length >= (n.action_trace?.length ?? 0) ? old.action_trace : n.action_trace, action_live: old.action_live } : n;
+        }),
+      );
       setLoaded(true);
     } catch {
       /* 다음 주기에 다시 시도한다 */

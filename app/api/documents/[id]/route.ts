@@ -127,8 +127,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // 처리 승인. 보호자의 명시적 행동 하나가 에이전트 실행의 유일한 시작점이다.
   // 불일치(mismatch) 문서는 승인 자체가 막힌다 — 사칭본에 돈이 나가는 경로를 두지 않는다.
   if (action === "approve") {
-    if (doc.verdict === "mismatch") return json({ error: "공식 정보와 다른 문서는 처리할 수 없습니다" }, 409);
     if (!doc.result) return json({ error: "판정이 끝나지 않았습니다" }, 409);
+    // 돈이 나가는 실행은 공식 대조가 끝난 문서만. mismatch 는 물론, 기관 미상·대조 불가도 받지 않는다.
+    if (doc.verdict !== "clear" && doc.verdict !== "review") return json({ error: "공식 정보 대조가 끝난 문서만 처리할 수 있습니다" }, 409);
     // 워커가 죽어 running/waiting 에 박힌 문서는 15분이 지나면 다시 승인할 수 있다. 그 전엔 멱등.
     const STALE_MS = 15 * 60_000;
     const stale = doc.approved_at ? Date.now() - new Date(doc.approved_at).getTime() > STALE_MS : true;
@@ -137,8 +138,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (doc.action_status === "done") return json(toGuardianDoc(doc));
     const data = await db.update(id, {
       action_status: "queued",
+      action_run: crypto.randomUUID(), // 새 리스. 옛 워커의 요청은 이 값이 달라 거부된다.
       action_trace: [{ t: new Date().toISOString(), title: "보호자가 처리를 승인했습니다" }],
       action_result: null,
+      action_live: null,
+      action_wait: null,
+      action_inputs: [],
       approved_at: new Date().toISOString(),
       resolution_status: doc.resolution_status === "new" ? "acknowledged" : doc.resolution_status,
       reviewed_at: doc.reviewed_at ?? new Date().toISOString(),

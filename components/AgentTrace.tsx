@@ -6,7 +6,7 @@ import { CheckCircle, WarningCircle, CaretRight } from "@/components/icons";
 
 // 에이전트가 무엇을 했는지. 단계마다 시각·제목·(있으면) 화면. 끝나면 결과 한 줄.
 // waiting 이면 보호자가 실시간 화면을 직접 터치·입력해 그 단계를 넘기고 [이어서 하기]를 누른다.
-// 이 경로로 들어온 입력은 서버가 큐로만 넘기고 저장하지 않는다(끝나면 비움).
+// 이 경로로 들어온 입력은 서버 큐를 거쳐 워커가 0.5초 안에 꺼내 쓰고 지운다. 끝나면 큐를 비운다. 보호자 응답에도 싣지 않는다.
 
 const FRAME_W = 900;
 const FRAME_H = 640;
@@ -107,7 +107,7 @@ export default function AgentTrace({
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="입력할 글자 (저장되지 않음)"
+              placeholder="입력할 글자 (처리 즉시 삭제)"
               autoComplete="off"
               className="min-h-tap min-w-0 flex-1 rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink"
             />

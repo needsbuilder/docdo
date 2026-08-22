@@ -37,7 +37,8 @@ export function toElderDoc(row: DocRow & { error?: string }): ElderDoc {
     verdict: row.verdict,
     phrases: row.phrases,
     action_status: row.action_status ?? "none",
-    action_summary: row.action_result?.summary ?? null,
+    // 끝났을 때만. 중단 사유(모델 문장)는 어르신에게 가지 않는다.
+    action_summary: row.action_status === "done" ? (row.action_result?.summary ?? null) : null,
     result: r
       ? {
           verdict: r.verdict,
@@ -52,12 +53,23 @@ export function toElderDoc(row: DocRow & { error?: string }): ElderDoc {
   };
 }
 
-/** 자녀 화면용. 원문 필드는 보되 내부 Upstage ID 는 뺀다 — 밖에 나갈 이유가 없다. */
-export type GuardianDoc = Omit<DocRow, "upstage_job_id" | "upstage_file_id"> & { error?: string };
+/** 자녀 화면용. 원문 필드는 보되 내부 Upstage ID·실행 리스·원격 입력 큐는 뺀다 — 밖에 나갈 이유가 없다. */
+export type GuardianDoc = Omit<DocRow, "upstage_job_id" | "upstage_file_id" | "action_run" | "action_inputs"> & { error?: string };
 
-export function toGuardianDoc(row: DocRow & { error?: string }): GuardianDoc {
+export function toGuardianDoc(row: DocRow & { error?: string }, opts: { lite?: boolean } = {}): GuardianDoc {
   const rest: Record<string, unknown> = { ...row };
   delete rest.upstage_job_id;
   delete rest.upstage_file_id;
+  delete rest.action_run;
+  delete rest.action_inputs;
+  if (opts.lite) {
+    // 목록용. 화면(JPEG)은 빼고 제목만 — 목록은 3초마다 50건을 나른다.
+    rest.action_trace = (row.action_trace ?? []).map((step) => {
+      const { shot, ...rest } = step;
+      void shot;
+      return rest;
+    });
+    rest.action_live = null;
+  }
   return rest as GuardianDoc;
 }

@@ -40,6 +40,8 @@ export type DocRow = {
   // 사람 개입. waiting 상태의 이유·안내, 그리고 보호자 폰에서 온 입력 큐(워커가 꺼내 쓴다).
   action_wait: ActionWait | null;
   action_inputs: AgentInput[];
+  // 실행 리스. 승인마다 새 값. 워커 요청은 이 값과 같을 때만 받는다.
+  action_run: string | null;
 };
 
 export type ActionStatus = "none" | "queued" | "running" | "waiting" | "done" | "blocked" | "failed";
@@ -111,7 +113,7 @@ function supabase(): SupabaseClient {
 }
 
 const COLUMNS =
-  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at, action_live, action_wait, action_inputs";
+  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at, action_live, action_wait, action_inputs, action_run";
 const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at";
 
 async function gOne(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Guardian | null> {
@@ -267,6 +269,7 @@ const fileStore: DocStore = {
         action_live: null,
         action_wait: null,
         action_inputs: [],
+        action_run: null,
         ...doc,
       };
       rows.push(row);

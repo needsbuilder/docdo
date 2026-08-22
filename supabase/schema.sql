@@ -63,3 +63,6 @@ alter table documents add column if not exists action_live text;
 -- 사람 개입(2026-08-23). action_wait: 멈춘 이유·안내. action_inputs: 보호자 폰에서 온 터치·키 입력 큐(워커가 소비).
 alter table documents add column if not exists action_wait jsonb;
 alter table documents add column if not exists action_inputs jsonb not null default '[]'::jsonb;
+
+-- 실행 리스(2026-08-23). 승인마다 새 run id. 워커는 자기 run 으로만 쓸 수 있다 — 재승인 뒤 옛 워커는 거부된다.
+alter table documents add column if not exists action_run text;

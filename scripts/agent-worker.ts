@@ -58,13 +58,24 @@ type AgentInput =
 
 type Doc = {
   id: string;
+  action_run: string | null;
   verdict: string | null;
   result: { fields?: Record<string, unknown>; fieldConfidence?: Record<string, string>; safeContact?: { phones?: string[] } } | null;
   phrases: { docLabel: string } | null;
 };
 
+/** 실행이 무효화됐다(재승인·다른 워커). 즉시 멈춘다 — 브라우저 조작을 더 하면 안 된다. */
+class LeaseLost extends Error {}
+
 const api = (path: string, body: unknown) =>
   fetch(`${BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json", "x-agent-secret": SECRET }, body: JSON.stringify(body) });
+
+/** 문서 전용 호출. run 리스를 싣고, 409 면 LeaseLost. */
+async function docApi(doc: Doc, body: Record<string, unknown>) {
+  const r = await api(`/api/agent/${doc.id}`, { run: doc.action_run, ...body });
+  if (r.status === 409) throw new LeaseLost("lease lost");
+  return r;
+}
 
 async function shot(page: Page, quality = 55): Promise<string> {
   const buf = await page.screenshot({ type: "jpeg", quality, clip: { x: 0, y: 0, width: 900, height: 640 } });
@@ -72,7 +83,7 @@ async function shot(page: Page, quality = 55): Promise<string> {
 }
 
 /** 실행 중 화면을 보호자 폰으로 계속 보낸다. 단계 기록과 별개로, 실패해도 흐름을 막지 않는다. */
-function startLive(page: Page, docId: string): () => void {
+function startLive(page: Page, doc: Doc): () => void {
   let stopped = false;
   let busy = false;
   const tick = async () => {
@@ -80,7 +91,7 @@ function startLive(page: Page, docId: string): () => void {
     busy = true;
     try {
       const live = await shot(page, 40);
-      await api(`/api/agent/${docId}`, { live });
+      await docApi(doc, { live });
     } catch {
       /* 다음 프레임에 다시 */
     } finally {
@@ -95,7 +106,7 @@ function startLive(page: Page, docId: string): () => void {
 }
 
 /** 사람 차례. 보호자 폰에서 오는 터치·키 입력을 브라우저에 그대로 넣고, [이어서 하기]가 오면 돌아온다. */
-async function waitForHuman(page: Page, docId: string, reason: string, hint: string, mode: "remote" | "confirm" = "remote"): Promise<void> {
+async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, mode: "remote" | "confirm" = "remote"): Promise<void> {
   // 사람이 조작할 부분(인증·비밀번호)이 실시간 화면 안에 들어오게 스크롤한다. 터치 좌표는 화면 기준이다.
   await page
     .evaluate(
@@ -103,16 +114,16 @@ async function waitForHuman(page: Page, docId: string, reason: string, hint: str
     )
     .catch(() => {});
   await page.waitForTimeout(300);
-  await api(`/api/agent/${docId}`, { wait: { reason, hint, mode }, step: { title: "보호자 차례 — " + reason, detail: hint, shot: await shot(page).catch(() => undefined) } });
+  await docApi(doc, { wait: { reason, hint, mode }, step: { title: "보호자 차례 — " + reason, detail: hint, shot: await shot(page).catch(() => undefined) } });
   // 대기 전에 쌓인 입력은 다른 화면을 향한 것이다. 실행하지 않고 버린다.
   {
-    const r0 = await api(`/api/agent/${docId}`, { consumed: [] });
+    const r0 = await docApi(doc, { consumed: [] });
     const { inputs: stale = [] } = (await r0.json().catch(() => ({}))) as { inputs?: AgentInput[] };
-    if (stale.length) await api(`/api/agent/${docId}`, { consumed: stale.map((i) => i.id) });
+    if (stale.length) await docApi(doc, { consumed: stale.map((i) => i.id) });
   }
   const deadline = Date.now() + 10 * 60_000;
   while (Date.now() < deadline) {
-    const r = await api(`/api/agent/${docId}`, { consumed: [] });
+    const r = await docApi(doc, { consumed: [] });
     const { inputs = [] } = (await r.json().catch(() => ({}))) as { inputs?: AgentInput[] };
     const consumed: string[] = [];
     let resume = false;
@@ -127,9 +138,9 @@ async function waitForHuman(page: Page, docId: string, reason: string, hint: str
         console.error("[agent] 입력 실패", e instanceof Error ? e.message : e);
       }
     }
-    if (consumed.length) await api(`/api/agent/${docId}`, { consumed });
+    if (consumed.length) await docApi(doc, { consumed });
     if (resume) {
-      await api(`/api/agent/${docId}`, { status: "running", step: { title: "보호자가 넘겨줘서 이어서 진행합니다" } });
+      await docApi(doc, { status: "running", step: { title: "보호자가 넘겨줘서 이어서 진행합니다" } });
       return;
     }
     await new Promise((r) => setTimeout(r, 500));
@@ -138,10 +149,16 @@ async function waitForHuman(page: Page, docId: string, reason: string, hint: str
 }
 
 const won = (n: number) => n.toLocaleString("ko-KR");
-/** 화면에 문서 금액이 "그 숫자 그대로" 보이는가. 173,000 안의 73,000 은 인정하지 않는다. */
-function amountVisible(text: string, amount: number): boolean {
-  const a = won(amount).replace(/,/g, "[,\\s]?");
-  return new RegExp(`(?<![\\d,.])${a}(?![\\d,])\\s*원`).test(text);
+const AMOUNT_LABEL = /(납부\s*할\s*금액|납부\s*금액|결제\s*금액|총\s*납부|납부\s*총액|청구\s*금액|납기\s*내\s*금액)/g;
+/** "납부할 금액" 같은 라벨 뒤의 금액만 본다. 페이지 어딘가에 같은 숫자가 있는 것으로는 부족하다.
+ *  라벨이 여러 개면 전부 문서 금액과 같아야 한다(납기후·포인트 같은 다른 숫자가 끼면 거부). 라벨이 없으면 버튼 글자로만 판단. */
+function amountConfirmed(text: string, amount: number, buttonName: string): boolean {
+  const exact = new RegExp(`^${won(amount).replace(/,/g, "[,\\s]?")}$`);
+  const found: string[] = [];
+  for (const m of text.matchAll(new RegExp(AMOUNT_LABEL.source + "[^\\d]{0,12}([\\d][\\d,\\s]{0,14}\\d|\\d)\\s*원", "g"))) found.push(m[2].replace(/\s/g, ""));
+  if (found.length) return found.every((v) => exact.test(v));
+  const inButton = buttonName.match(/([\d][\d,]{0,14}\d|\d)\s*원/);
+  return !!inButton && exact.test(inButton[1]);
 }
 
 /** Solar 가 화면을 읽고 행동을 고르는 루프. 가드레일은 여기(코드)에 있다. */
@@ -170,9 +187,9 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
     if (sameCount >= 3) return finish("failed", "화면이 바뀌지 않아 멈췄습니다", { reason: "stuck" });
 
     // 가드 1: 사람 차례 신호가 보이면 모델을 부르지 않고 바로 넘긴다.
-    if (HUMAN.test(snap.text) && !paid) {
+    if (HUMAN.test(snap.text)) {
       await page.evaluate("window.scrollBy(0, 240)");
-      await waitForHuman(page, doc.id, "본인 확인이 필요한 단계입니다", "비밀번호·인증은 독도가 입력하지 않습니다. 화면을 눌러 직접 마친 뒤 [이어서 하기]를 눌러 주세요.");
+      await waitForHuman(page, doc, "본인 확인이 필요한 단계입니다", "비밀번호·인증은 독도가 입력하지 않습니다. 화면을 눌러 직접 마친 뒤 [이어서 하기]를 눌러 주세요.");
       continue;
     }
 
@@ -183,7 +200,7 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
 
     if (action.kind === "abort") return finish("blocked", `에이전트가 멈췄습니다: ${action.reason}`, { reason: "abort" });
     if (action.kind === "wait_human") {
-      await waitForHuman(page, doc.id, action.reason, action.hint);
+      await waitForHuman(page, doc, action.reason, action.hint);
       continue;
     }
     if (action.kind === "done") {
@@ -198,7 +215,7 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
     }
     if (action.kind === "type" && ref) {
       if (ref.type === "password") {
-        await waitForHuman(page, doc.id, "비밀번호 입력 단계입니다", "비밀번호는 독도가 입력하지 않습니다. 직접 입력한 뒤 [이어서 하기]를 눌러 주세요.");
+        await waitForHuman(page, doc, "비밀번호 입력 단계입니다", "비밀번호는 독도가 입력하지 않습니다. 직접 입력한 뒤 [이어서 하기]를 눌러 주세요.");
         continue;
       }
       await page.fill(ref.selector, action.text);
@@ -210,15 +227,14 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
         return finish("blocked", `"${ref.name}" 은 납부와 무관한 행동이라 멈췄습니다`, { reason: "forbidden_click" });
       }
       // 가드 2: 되돌릴 수 없는 버튼은 화면에 문서 금액이 보일 때만.
-      if (IRREVERSIBLE.test(ref.name) && !amountVisible(snap.text, amount)) {
+      if (IRREVERSIBLE.test(ref.name) && !amountConfirmed(snap.text, amount, ref.name)) {
         await step("금액 확인 없이 납부 버튼을 누르려 해서 멈춥니다", ref.name, await shot(page));
         return finish("blocked", "화면에서 문서 금액을 확인하지 못해 납부를 멈췄습니다", { reason: "amount_not_visible" });
       }
-      if (IRREVERSIBLE.test(ref.name)) {
-        await step("문서 금액이 화면에 보입니다 — 납부를 진행합니다", `${won(amount)}원 · ${ref.name}`, await shot(page));
-        paid = true;
-      }
+      const irreversible = IRREVERSIBLE.test(ref.name);
+      if (irreversible) await step("납부 금액이 문서와 일치합니다 — 납부를 진행합니다", `${won(amount)}원 · ${ref.name}`, await shot(page));
       await page.click(ref.selector).catch(async () => page.locator(ref.selector).click({ force: true }));
+      if (irreversible) paid = true;
       await step(`클릭: ${ref.name || ref.role}`, why, await shot(page));
     } else if (action.kind === "press") {
       await page.keyboard.press(action.key);
@@ -233,9 +249,9 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
 }
 
 async function run(doc: Doc) {
-  const step = (title: string, detail?: string, s?: string) => api(`/api/agent/${doc.id}`, { step: { title, detail, shot: s } });
+  const step = (title: string, detail?: string, s?: string) => docApi(doc, { step: { title, detail, shot: s } });
   const finish = (status: "done" | "blocked" | "failed", summary: string, extra: Record<string, string> = {}) =>
-    api(`/api/agent/${doc.id}`, { status, result: { summary, ...extra } });
+    docApi(doc, { status, result: { summary, ...extra } });
 
   const f = doc.result?.fields ?? {};
   const conf = doc.result?.fieldConfidence ?? {};
@@ -251,18 +267,20 @@ async function run(doc: Doc) {
 
   const browser = await chromium.launch({ headless: !HEADED, slowMo: Number(process.env.AGENT_SLOWMO ?? (HEADED ? 350 : 0)) });
   const page = await browser.newPage({ viewport: { width: 900, height: 640 }, locale: "ko-KR" });
-  const stopLive = startLive(page, doc.id);
+  const stopLive = startLive(page, doc);
   try {
     if (MODE === "llm") {
       if (!UPSTAGE_KEY) return finish("failed", "UPSTAGE_API_KEY 없음");
-      const issuer = typeof f.issuer === "string" ? f.issuer : null;
-      return await runLLM(page, doc, label, epn, amount, issuer, step, finish);
+      // 문서에서 읽은 글자는 프롬프트에 들어간다. 줄바꿈·길이를 자른다(문서발 인젝션 완화).
+      const clean = (v: unknown, n: number) => (typeof v === "string" ? v.replace(/[\r\n\t"`]/g, " ").slice(0, n) : null);
+      const issuer = clean(f.issuer, 40);
+      return await runLLM(page, doc, clean(label, 20) ?? "우편물", clean(epn, 30) ?? epn, amount, issuer, step, finish);
     }
     if (ADAPTER === "giro") {
       await page.goto("https://www.giro.or.kr/nomember/agreeNoMemberProvision.do", { waitUntil: "domcontentloaded", timeout: 60000 });
       await page.waitForTimeout(3000);
       await step("인터넷지로 비회원 납부 서비스에 접속했습니다", page.url(), await shot(page));
-      await waitForHuman(page, doc.id, "인증서 확인이 필요합니다", "인터넷지로는 금융인증서·공동인증서로만 진행됩니다. 화면을 눌러 직접 인증을 마친 뒤 [이어서 하기]를 눌러 주세요.");
+      await waitForHuman(page, doc, "인증서 확인이 필요합니다", "인터넷지로는 금융인증서·공동인증서로만 진행됩니다. 화면을 눌러 직접 인증을 마친 뒤 [이어서 하기]를 눌러 주세요.");
       await step("인증 이후 화면입니다", page.url(), await shot(page));
       return finish("blocked", "인터넷지로 어댑터는 인증 이후 단계(조회·납부)가 아직 구현되지 않았습니다.", { reason: "giro_wip" });
     }
@@ -293,12 +311,16 @@ async function run(doc: Doc) {
     await page.locator("#auth").scrollIntoViewIfNeeded();
     await page.waitForTimeout(300);
     await step("본인인증 화면입니다 — 비밀번호는 에이전트가 입력하지 않습니다", "보안 키패드 6자리", await shot(page));
-    await waitForHuman(page, doc.id, "인증서 비밀번호를 직접 눌러 주세요", "아래 화면의 키패드를 눌러 6자리를 입력하고 [확인]까지 누른 뒤 [이어서 하기]를 눌러 주세요.");
+    await waitForHuman(page, doc, "인증서 비밀번호를 직접 눌러 주세요", "아래 화면의 키패드를 눌러 6자리를 입력하고 [확인]까지 누른 뒤 [이어서 하기]를 눌러 주세요.");
     await page.waitForSelector("#receipt", { timeout: 15000 });
     const receipt = (await page.textContent("#receipt-no"))?.trim() ?? "";
     await step("납부가 완료되었습니다", `납부확인번호 ${receipt}`, await shot(page));
     return finish("done", `${label} ${amount.toLocaleString("ko-KR")}원 납부 완료 · 납부확인번호 ${receipt}`, { receipt });
   } catch (e) {
+    if (e instanceof LeaseLost) {
+      console.error("[agent] 실행 리스 상실 — 다른 워커가 이어받았거나 재승인됨. 이 브라우저는 여기서 멈춘다.");
+      return;
+    }
     const msg = e instanceof Error ? e.message.split("\n")[0] : String(e);
     await step("처리 중 오류가 났습니다", msg, await shot(page).catch(() => undefined));
     return finish("failed", "처리 중 오류가 나서 멈췄습니다. 납부는 되지 않았습니다.", { reason: msg.slice(0, 200) });
