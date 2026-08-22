@@ -16,6 +16,14 @@ const WAIT_TEXT = [
   "분석은 계속돼요. 잠시만 기다려 주세요",
 ];
 
+// 심사위원이 실물 우편물 없이도 파이프라인을 돌려볼 수 있어야 한다.
+// 전부 팀이 만든 합성 견본이다. 실재하는 개인·계좌 정보가 들어 있지 않다.
+const SAMPLES: [file: string, label: string][] = [
+  ["01-normal.jpg", "정상 고지서로 체험"],
+  ["02-tampered.jpg", "사칭 의심 문서로 체험"],
+  ["03-welfare.jpg", "복지 안내문으로 체험"],
+];
+
 function waitLine(seconds: number): string {
   if (seconds > 45) return WAIT_TEXT[3];
   if (seconds > 15) return WAIT_TEXT[2];
@@ -80,6 +88,17 @@ export default function Elder() {
     await submit(file);
   }
 
+  async function onSample(file: string) {
+    // 체험도 실제 경로를 그대로 탄다. 저장된 결과를 다시 보여주지 않는다.
+    primeSpeech();
+    try {
+      const blob = await fetch(`/samples/${file}`).then((r) => r.blob());
+      await submit(new File([blob], file, { type: "image/jpeg" }));
+    } catch {
+      setStage("error");
+    }
+  }
+
   function onShoot() {
     // iOS 는 첫 발화가 사용자 제스처 안에서 일어나야 한다.
     // 여기서 풀어두지 않으면 판독 완료 후의 speak() 가 조용히 무시된다.
@@ -125,6 +144,22 @@ export default function Elder() {
             onChange={onPick}
             className="hidden"
           />
+
+          <div className="mt-2 flex w-full flex-col gap-2">
+            <p className="text-center text-sm text-neutral-500">사진이 없으신가요?</p>
+            {SAMPLES.map(([file, label]) => (
+              <button
+                key={file}
+                onClick={() => onSample(file)}
+                className="rounded-xl border border-neutral-300 px-4 py-3 text-base font-medium"
+              >
+                {label}
+              </button>
+            ))}
+            <p className="text-center text-xs leading-relaxed text-neutral-400">
+              전부 합성 견본입니다. 실제 파이프라인이 그대로 돌아갑니다.
+            </p>
+          </div>
         </>
       )}
 
