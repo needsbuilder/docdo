@@ -679,14 +679,19 @@ P95 초과           "분석은 계속돼요. 문서함에서 확인할 수 있�
 
 | 결정 | 근거 |
 |---|---|
-| **Expo SDK 57** (최소 `expo@57.0.9`) | SDK 56 Hermes 회귀. **57 초기판에도 남아 있었으므로 하한 고정** |
+| **Next.js 15 PWA** (~~Expo~~) | **2026-08-23 변경.** Expo를 택한 유일한 근거가 "팀원 결정"이었는데 그 제약이 사라졌다. 남은 9시간에 **Demo URL이 곧 앱**인 쪽이 유일하게 안전하다. 배포 한 번, 심사위원이 Q&A 때 자기 폰으로 연다 |
+| **`speechSynthesis`** (~~expo-speech~~) | 웹 API도 iOS 내장 TTS 엔진을 쓴다. `ko-KR` 음성 나온다 |
+| **`<input capture="environment">`** | 아이폰 Safari에서 촬영 앱이 바로 뜬다 |
+| **푸시 없음** | 웹 푸시는 홈 화면 추가가 전제라 시연이 번거롭다. **"전달"이 아니라 "자녀 화면에 즉시 등록"이라고 말한다** (§7-B) |
+| **Supabase** | 두 화면 상태 공유. 데모는 고정 가구 1개, 인증 없음 — README에 명시 |
+| ~~Expo SDK 57~~ | ~~SDK 56 Hermes 회귀~~ (사용 안 함) |
 | 아이폰 실기기 + **QuickTime** 미러링 | macOS *iPhone Mirroring*은 **폰이 잠겨야 동작** → 촬영 시연 불가 |
 | **OpenAI SDK**로 Upstage 호출 | Agent API가 OpenAI 호환. `baseURL: "https://api.upstage.ai/v2"` |
 | `include: ["all"]` + **`config_id` 고정** | §6.3 |
 | 폴링 (웹훅 없음) | Agent API에 콜백 없음 |
 | `expo-speech` | Expo Go 포함, 네트워크 불필요 |
 | `expo-notifications` | **주장의 정직성 문제.** 없으면 "전달"이 아니라 "등록"이라고만 쓸 수 있다 |
-| **제출 범위: iPhone 실기기 + 웹 데모** | Android는 테스트하지 않는다. README에 명시 |
+| **제출 범위: iPhone Safari + 데스크톱 웹** | Android는 테스트하지 않는다. README에 명시 |
 
 ### Demo URL 정의
 
