@@ -10,6 +10,8 @@ const base: DocView = {
   verdict: null,
   result: null,
   phrases: null,
+  action_status: "none",
+  action_summary: null,
 };
 
 function res(body: unknown, ok = true, status = 200) {

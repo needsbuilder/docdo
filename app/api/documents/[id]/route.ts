@@ -112,16 +112,34 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!s) return json({ error: "로그인이 필요합니다" }, 401);
   const { id } = await params;
   let resolution: unknown;
+  let action: unknown;
   try {
-    ({ resolution } = await req.json());
+    ({ resolution, action } = await req.json());
   } catch {
     return json({ error: "JSON 형식이 아닙니다" }, 400);
   }
-  if (typeof resolution !== "string") return json({ error: "잘못된 값" }, 400);
 
   const db = store();
   const doc = await db.get(id);
   if (!doc || doc.household_id !== s.householdId) return json({ error: "없음" }, 404);
+
+  // 처리 승인. 보호자의 명시적 행동 하나가 에이전트 실행의 유일한 시작점이다.
+  // 불일치(mismatch) 문서는 승인 자체가 막힌다 — 사칭본에 돈이 나가는 경로를 두지 않는다.
+  if (action === "approve") {
+    if (doc.verdict === "mismatch") return json({ error: "공식 정보와 다른 문서는 처리할 수 없습니다" }, 409);
+    if (!doc.result) return json({ error: "판정이 끝나지 않았습니다" }, 409);
+    if (doc.action_status !== "none" && doc.action_status !== "failed" && doc.action_status !== "blocked") return json(toGuardianDoc(doc));
+    const data = await db.update(id, {
+      action_status: "queued",
+      action_trace: [{ t: new Date().toISOString(), title: "보호자가 처리를 승인했습니다" }],
+      action_result: null,
+      approved_at: new Date().toISOString(),
+      resolution_status: doc.resolution_status === "new" ? "acknowledged" : doc.resolution_status,
+      reviewed_at: doc.reviewed_at ?? new Date().toISOString(),
+    });
+    return json(toGuardianDoc(data ?? doc));
+  }
+  if (typeof resolution !== "string") return json({ error: "잘못된 값" }, 400);
   const allowed = NEXT[doc.resolution_status] ?? new Set();
   if (!allowed.has(resolution)) {
     // 같은 상태로 다시 누른 것은 멱등으로 본다. 되돌리기는 거부한다.

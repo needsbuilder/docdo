@@ -92,7 +92,11 @@ export default function ElderResult({
 
   // 상태 배지는 색 + 아이콘 + 글자 3중 신호. "보냈어요"에 체크는 의미가 틀리다.
   const status =
-    cur.resolution_status === "done"
+    cur.action_status === "done"
+      ? { icon: CheckCircle, text: cur.action_summary ? `처리됐어요 — ${cur.action_summary}` : "처리됐어요", cls: "bg-ok-tint text-ok-ink" }
+      : cur.action_status === "running" || cur.action_status === "queued"
+        ? { icon: Eye, text: "자녀분이 승인해서 처리하고 있어요", cls: "bg-brand-tint text-brand" }
+      : cur.resolution_status === "done"
       ? { icon: CheckCircle, text: "자녀분이 처리했어요", cls: "bg-ok-tint text-ok-ink" }
       : cur.resolution_status === "acknowledged"
         ? { icon: Eye, text: "자녀분이 확인했어요", cls: "bg-brand-tint text-brand" }

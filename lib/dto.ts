@@ -14,6 +14,8 @@ export type ElderDoc = {
   resolution_status: string;
   verdict: string | null;
   phrases: Phrases | null;
+  action_status: string;
+  action_summary: string | null;
   // 판정 종류만. fields·checks 원문은 없다.
   result: {
     verdict: VerifyResult["verdict"];
@@ -34,6 +36,8 @@ export function toElderDoc(row: DocRow & { error?: string }): ElderDoc {
     resolution_status: row.resolution_status,
     verdict: row.verdict,
     phrases: row.phrases,
+    action_status: row.action_status ?? "none",
+    action_summary: row.action_result?.summary ?? null,
     result: r
       ? {
           verdict: r.verdict,

@@ -181,6 +181,22 @@ export default function Guardian() {
     };
   }, [auth, docs]);
 
+  async function approve(id: string) {
+    try {
+      const res = await fetch(`/api/documents/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve" }),
+      });
+      if (res.status === 401) return setAuth("anon");
+      if (!res.ok) return;
+      const updated = (await res.json()) as GuardianDoc;
+      setDocs((ds) => ds.map((d) => (d.id === id ? { ...d, ...updated } : d)));
+    } catch {
+      /* 다음 목록 조회가 진실이다 */
+    }
+  }
+
   async function mark(id: string, resolution: "acknowledged" | "done") {
     try {
       const res = await fetch(`/api/documents/${id}`, {
@@ -348,7 +364,7 @@ export default function Guardian() {
 
       <div className="space-y-5">
         {docs.map((d) => (
-          <GuardianCard key={d.id} doc={d} onMark={mark} />
+          <GuardianCard key={d.id} doc={d} onMark={mark} onApprove={approve} />
         ))}
 
         {loaded && docs.length === 0 && (

@@ -229,6 +229,10 @@ describe("#1 DTO — 어르신 응답에는 원문이 없다", () => {
     phrases: { docLabel: "우편물", screenLines: ["a"], speech: "b" },
     reviewed_at: null,
     done_at: null,
+    action_status: "none",
+    action_trace: [],
+    action_result: null,
+    approved_at: null,
   };
 
   it("어르신 응답에 fields·checks·upstage id 가 없다", () => {

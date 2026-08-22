@@ -9,6 +9,7 @@ import { findRelatedBenefits } from "@/lib/welfare";
 import CheckList from "@/components/CheckList";
 import BenefitHints from "@/components/BenefitHints";
 import { Phone, ArrowSquareOut, CaretRight } from "@/components/icons";
+import AgentTrace from "@/components/AgentTrace";
 
 // 보호자 카드 3단:
 //   1단(항상) 판정 · 제목 · 핵심값 · D-day
@@ -38,9 +39,11 @@ const text = (v: unknown) => (typeof v === "string" && v.trim() ? v : null);
 export default function GuardianCard({
   doc: d,
   onMark,
+  onApprove,
 }: {
   doc: GuardianDoc;
   onMark: (id: string, resolution: "acknowledged" | "done") => void;
+  onApprove: (id: string) => void;
 }) {
   const r = d.result;
   const [open, setOpen] = useState(r?.verdict === "mismatch");
@@ -59,6 +62,12 @@ export default function GuardianCard({
   const officialPhone = r?.safeContact?.phones?.[0];
   const officialHost = r?.safeContact?.hosts?.[0];
   const done = d.resolution_status === "done";
+  const conf2 = r?.fieldConfidence ?? {};
+  // 승인 가능: 판정이 나왔고, 불일치가 아니고, 전자납부번호·금액을 확실히 읽었을 때만.
+  const canApprove =
+    !!r && d.verdict !== "mismatch" && conf2.epn === "high" && typeof f.epn === "string" && !!amount &&
+    (d.action_status === "none" || d.action_status === "failed" || d.action_status === "blocked");
+  const agentActive = d.action_status === "queued" || d.action_status === "running";
 
   return (
     <article className={`rounded-card border border-line-soft border-l-[6px] bg-surface p-5 shadow-card ${RAIL[d.verdict ?? ""] ?? "border-l-line"} ${done ? "opacity-70" : ""}`}>
@@ -145,9 +154,24 @@ export default function GuardianCard({
         </>
       )}
 
+      {/* 에이전트 */}
+      {d.action_status !== "none" && <AgentTrace status={d.action_status} trace={d.action_trace ?? []} result={d.action_result} />}
+
       {/* 행동 */}
       {r && (
         <div className="mt-5 flex flex-wrap gap-2">
+          {canApprove && !confirm && (
+            <button
+              type="button"
+              onClick={() => onApprove(d.id)}
+              className="press on-brand min-h-tap rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+            >
+              {d.action_status === "none" ? `납부 처리 승인 · ${amount}` : "다시 처리 승인"}
+            </button>
+          )}
+          {agentActive && (
+            <span className="flex min-h-tap items-center text-g-body text-ink-mid">독도가 처리 중입니다…</span>
+          )}
           {confirm ? (
             <>
               <span className="flex min-h-tap items-center text-g-body text-ink">완료로 표시할까요? 부모님 화면도 바뀝니다.</span>
@@ -171,7 +195,7 @@ export default function GuardianCard({
               <button
                 type="button"
                 onClick={() => setConfirm(true)}
-                disabled={done}
+                disabled={done || agentActive}
                 className={`press min-h-tap rounded-control px-4 text-g-body font-bold ${done ? "bg-ok-tint text-ok-ink" : "on-brand bg-brand text-surface active:bg-brand-deep"}`}
               >
                 {done ? "처리 완료됨" : "처리 완료"}

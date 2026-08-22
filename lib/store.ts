@@ -30,7 +30,16 @@ export type DocRow = {
   phrases: Phrases | null;
   reviewed_at: string | null;
   done_at: string | null;
+  // 에이전트 실행. 보호자가 승인하면 queued, 워커가 집으면 running, 끝나면 done/blocked/failed.
+  action_status: ActionStatus | string;
+  action_trace: TraceStep[];
+  action_result: ActionResult | null;
+  approved_at: string | null;
 };
+
+export type ActionStatus = "none" | "queued" | "running" | "done" | "blocked" | "failed";
+export type TraceStep = { t: string; title: string; detail?: string; shot?: string };
+export type ActionResult = { summary: string; receipt?: string; reason?: string };
 
 export type NewDoc = {
   household_id: string;
@@ -65,6 +74,9 @@ export interface DocStore {
   guardianByEmail(email: string): Promise<Guardian | null>;
   guardianById(id: string): Promise<Guardian | null>;
   guardianByElderToken(token: string): Promise<Guardian | null>;
+
+  /** 워커용. 승인된 문서 하나를 집어 running 으로 바꾼다. 없으면 null. */
+  claimAction(): Promise<DocRow | null>;
 }
 
 function supabaseEnv(): { url: string; key: string } | null {
@@ -88,7 +100,7 @@ function supabase(): SupabaseClient {
 }
 
 const COLUMNS =
-  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at";
+  "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at";
 const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at";
 
 async function gOne(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Guardian | null> {
@@ -135,6 +147,26 @@ const supabaseStore: DocStore = {
       .maybeSingle();
     if (error) throw new Error(error.message);
     return (data as DocRow | null) ?? null;
+  },
+  async claimAction() {
+    const { data, error } = await supabase()
+      .from("documents")
+      .select(COLUMNS)
+      .eq("action_status", "queued")
+      .order("approved_at", { ascending: true })
+      .limit(1);
+    if (error) throw new Error(error.message);
+    const row = (data ?? [])[0] as DocRow | undefined;
+    if (!row) return null;
+    // 같은 행을 둘이 집는 경쟁은 조건부 갱신으로 막는다.
+    const { data: got, error: e2 } = await supabase()
+      .from("documents")
+      .update({ action_status: "running" })
+      .eq("id", row.id)
+      .eq("action_status", "queued")
+      .select(COLUMNS);
+    if (e2) throw new Error(e2.message);
+    return ((got ?? [])[0] as DocRow | undefined) ?? null;
   },
   async createGuardian(g) {
     const { data, error } = await supabase().from("guardians").insert(g).select(G_COLUMNS).single();
@@ -217,6 +249,10 @@ const fileStore: DocStore = {
         phrases: null,
         reviewed_at: null,
         done_at: null,
+        action_status: "none",
+        action_trace: [],
+        action_result: null,
+        approved_at: null,
         ...doc,
       };
       rows.push(row);
@@ -251,6 +287,17 @@ const fileStore: DocStore = {
       const i = rows.findIndex((r) => r.id === id);
       if (i < 0) return null;
       rows[i] = { ...rows[i], ...patch };
+      await writeAll(rows);
+      return rows[i];
+    });
+  },
+  claimAction() {
+    return serialize(async () => {
+      const rows = await readAll();
+      const q = rows.filter((r) => r.action_status === "queued").sort((a, b) => (a.approved_at ?? "").localeCompare(b.approved_at ?? ""));
+      if (!q.length) return null;
+      const i = rows.findIndex((r) => r.id === q[0].id);
+      rows[i] = { ...rows[i], action_status: "running" };
       await writeAll(rows);
       return rows[i];
     });

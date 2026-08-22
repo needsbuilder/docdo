@@ -48,3 +48,11 @@ create index if not exists documents_household_created_idx
 
 alter table guardians disable row level security; -- 데모 전용
 alter table documents disable row level security; -- 데모 전용
+
+-- 에이전트 실행(2026-08-23). 보호자가 승인하면 워커가 집어가 처리하고 단계를 기록한다.
+-- action_status: none / queued / running / done / blocked / failed
+alter table documents add column if not exists action_status text not null default 'none';
+alter table documents add column if not exists action_trace jsonb not null default '[]'::jsonb;
+alter table documents add column if not exists action_result jsonb;
+alter table documents add column if not exists approved_at timestamptz;
+create index if not exists documents_action_queue_idx on documents (action_status, approved_at) where action_status = 'queued';
