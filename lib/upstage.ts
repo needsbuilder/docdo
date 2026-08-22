@@ -1,4 +1,7 @@
+import "server-only";
+
 // Upstage Agent API v2 클라이언트. 서버에서만 부른다.
+// server-only 는 Client Component 가 실수로 import 하면 빌드를 깨뜨린다.
 // UPSTAGE_API_KEY 에 NEXT_PUBLIC_ 접두사를 붙이면 안 된다 — 소스 전체 공개가 대회 규칙이다.
 //
 // 엔드포인트는 scripts/run_agent.py 로 실측한 것과 같다.

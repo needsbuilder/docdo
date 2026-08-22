@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // 확대를 막지 않는다. 저시력 어르신에게서 핀치 줌을 뺏으면 안 된다.
   themeColor: "#1a4f8b",
 };
 

@@ -38,10 +38,20 @@ export function koNumber(n: number): string {
 
 export const koMoney = (n: number) => `${koNumber(n)} 원`;
 
-export function koDate(iso: unknown): string {
+/** 실제 달력 날짜만 읽는다. `2026-99-99` 를 통과시키면 "구십구월 구십구일"을 낭독한다. */
+function isoParts(iso: unknown): [number, number, number] | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
-  if (!m) return "";
-  return `${koNumber(Number(m[2]))}월 ${koNumber(Number(m[3]))}일`;
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  if (y < 1900 || y > 2200) return null;
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  return [y, mo, d];
+}
+
+export function koDate(iso: unknown): string {
+  const p = isoParts(iso);
+  return p ? `${koNumber(p[1])}월 ${koNumber(p[2])}일` : "";
 }
 
 /** 전화번호는 자릿수로 읽는다. TTS 가 "1577"을 "천오백칠십칠"로 읽으면 못 알아듣는다. */
@@ -61,7 +71,7 @@ export function parseAmount(v: unknown): number | null {
   if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? Math.floor(v) : null;
   if (typeof v !== "string") return null;
   const s = v.trim();
-  if (!s || !/^[0-9,.\s]*원?$/.test(s)) return null;
+  if (!/^[0-9][0-9,]*원?$/.test(s)) return null;
   const digits = s.replace(/[^0-9]/g, "");
   if (!digits) return null;
   const n = Number(digits);
@@ -79,8 +89,8 @@ function money(n: number): string {
 }
 
 function shortDate(iso: unknown): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? "").trim());
-  return m ? `${Number(m[2])}월 ${Number(m[3])}일` : "";
+  const p = isoParts(iso);
+  return p ? `${p[1]}월 ${p[2]}일` : "";
 }
 
 const LABELS: [RegExp, string][] = [
@@ -95,10 +105,41 @@ const LABELS: [RegExp, string][] = [
   [/에너지바우처/, "에너지바우처"],
 ];
 
+/** 어르신 화면에는 **문서에서 읽은 원문을 그대로 띄우지 않는다.**
+ *  등록된 라벨로만 바꾼다. doc_title 이 "계좌110-555 송금" 이어도 화면에는 "우편물"이 뜬다.
+ *  원문이 필요한 쪽은 자녀 화면이다(fields.doc_title 을 직접 읽는다). */
 export function shortLabel(title: unknown): string {
   const t = String(title ?? "").trim();
   for (const [re, label] of LABELS) if (re.test(t)) return label;
-  return t.slice(0, 10) || "우편물";
+  return "우편물";
+}
+
+/** 무엇이 어긋났는지 종류별로 사실만 말한다.
+ *  예금주 불일치인데 "연락처가 달라요"라고 하면 확인된 사실을 잘못 전달하는 것이다. */
+function mismatchWording(r: VerifyResult): { screenLines: string[]; what: string } {
+  const kinds = new Set(r.checks.filter((c) => c.ok === false).map((c) => c.kind));
+  if (kinds.has("payee")) {
+    return {
+      screenLines: ["이 문서에 적힌 예금주가", "발급기관 이름과 다릅니다"],
+      what: "이 종이에 적힌 예금주가 기관 이름과 달라요",
+    };
+  }
+  if (kinds.has("host")) {
+    return {
+      screenLines: ["이 문서에 적힌 인터넷 주소가", "공식 주소와 다릅니다"],
+      what: "이 종이에 적힌 인터넷 주소가 공식 주소와 달라요",
+    };
+  }
+  if (kinds.has("mobile")) {
+    return {
+      screenLines: ["이 문서에 적힌 상담 번호가", "개인 휴대전화입니다"],
+      what: "이 종이에 적힌 상담 번호가 개인 휴대전화예요",
+    };
+  }
+  return {
+    screenLines: ["이 문서의 정보가", "공식 정보와 다릅니다"],
+    what: "이 종이에 적힌 정보가 공식 정보와 달라요",
+  };
 }
 
 export type Phrases = { docLabel: string; screenLines: string[]; speech: string };
@@ -109,15 +150,18 @@ export function buildPhrases(r: VerifyResult): Phrases {
   // "우편물 우편물이에요" 가 되지 않게 기본 라벨일 때는 한 번만 쓴다.
   const subject = docLabel === "우편물" ? "우편물" : `${docLabel} 우편물`;
   const amount = parseAmount(f.amount_krw);
-  const due = String(f.due_date ?? f.apply_deadline ?? "");
+  const dueRaw = String(f.due_date ?? f.apply_deadline ?? "");
+  const due = isoParts(dueRaw) ? dueRaw : "";
 
   // 원칙 5 — 문서의 번호로 전화하지 말라고 알린다. 공식 번호는 화면이 레지스트리에서 가져온다.
+  // 설계서 §5.2 가 승인한 문구다. 보호 경고이지 납부 지시가 아니다.
   if (r.verdict === "mismatch") {
+    const m = mismatchWording(r);
     return {
       docLabel,
-      screenLines: ["이 문서의 정보가", "공식 정보와 다릅니다"],
+      screenLines: m.screenLines,
       speech:
-        "어르신, 잠깐만요. 이 종이에 적힌 연락처가 공식 정보와 달라요. " +
+        `어르신, 잠깐만요. ${m.what}. ` +
         "여기 적힌 번호로는 전화하지 마세요. 자녀분께 먼저 여쭤보세요.",
     };
   }
