@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* 어르신 화면은 밝기·대비를 고정한다.
+   기기 다크모드가 흑백을 뒤집으면 큰 글씨의 대비가 무너진다. */
+@theme {
+  --color-docdo: #1a4f8b;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    Pretendard, "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+}
+
+html {
+  color-scheme: light;
+  -webkit-text-size-adjust: 100%;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+}

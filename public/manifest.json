@@ -1,0 +1,8 @@
+{
+  "name": "DocDo",
+  "short_name": "DocDo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a4f8b"
+}

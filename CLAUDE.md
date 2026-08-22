@@ -59,3 +59,13 @@ JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch(37)
 - **항상 Codex 리뷰를 받으며 진행한다.** `codex exec --skip-git-repo-check - < prompt.md` (10분 초과 시 백그라운드).
 - 시연은 **아이폰 실기기 + QuickTime 미러링**. macOS *iPhone Mirroring*은 폰이 잠겨야 동작해 촬영 시연이 불가능하다.
 - **iOS는 무음 모드(벨소리 스위치)면 음성이 안 난다.** 데모 체크리스트 1번.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
