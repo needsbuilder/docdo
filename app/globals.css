@@ -1,13 +1,123 @@
 @import "tailwindcss";
 
-/* 어르신 화면은 밝기·대비를 고정한다.
-   기기 다크모드가 흑백을 뒤집으면 큰 글씨의 대비가 무너진다. */
-@theme {
-  --color-docdo: #1a4f8b;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-    Pretendard, "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+/* ─────────────────────────────────────────────────────────────
+   서체: KoddiUD 온고딕 (한국장애인개발원 × 윤디자인, CC BY-SA 4.0)
+   선정 근거 — 획 대비 1.13, ㅇ 속공간이 대안 대비 16% 넓고, 글자면 0.883em,
+   숫자 advance 600/1000em 고정폭. 시각장애인 30명 포함 332명 사용성 평가로
+   판독성이 검증된 UD 서체다. 기기 기본 서체(Apple SD Gothic Neo)는 숫자 폭이
+   0.357~0.630em 으로 흔들려 48px 금액에서 자릿수가 13px 까지 어긋났다 —
+   tnum 피처가 없어 CSS 로는 고칠 수 없는 문제였다.
+   ───────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: "KoddiUD";
+  src: url("/fonts/koddi-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "KoddiUD";
+  src: url("/fonts/koddi-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+/* 폴백 메트릭을 KoddiUD 에 맞춘다. 이게 없으면 웹폰트가 스왑되는 순간
+   한글 advance 가 +11% 튀면서 금액이 재배치된다. 음성 재생 중인 어르신이 그 순간을 놓친다. */
+@font-face {
+  font-family: "KoddiUD Fallback";
+  src: local("Apple SD Gothic Neo"), local("Noto Sans KR"), local("Malgun Gothic");
+  size-adjust: 111%;
+  ascent-override: 92.5%;
+  descent-override: 29.5%;
+  line-gap-override: 22%;
 }
 
+@theme {
+  --font-sans: "KoddiUD", "KoddiUD Fallback", sans-serif;
+
+  /* ── 색 ────────────────────────────────────────────────────
+     괄호는 paper(#FAF8F4) 위 대비비. 본문 기준선은 AA 4.5:1 이 아니라 AAA 7:1. */
+  --color-paper: #faf8f4; /* 페이지 배경. 종이 은유 + 순백 탈출 */
+  --color-surface: #ffffff; /* 카드 */
+  --color-ink: #10151c; /* 본문·핵심값 (17.27) */
+  --color-ink-mid: #333b45; /* 부제 (10.69) */
+  --color-ink-soft: #4a5461; /* 보조 최저 (7.25 AAA) */
+  --color-line: #6e7783; /* 경계선 (4.28, 비텍스트 3:1 통과) */
+  --color-line-soft: #d6d2ca; /* 내부 구분선 전용. 경계에 쓰지 않는다 */
+
+  /* 브랜드 — 값은 유지(흰 글자 얹으면 8.28), 형제와 이름을 준다 */
+  --color-brand: #1a4f8b;
+  --color-brand-deep: #123a69; /* pressed (10.79) */
+  --color-brand-tint: #e7eff8; /* 이 위 brand 글자 7.14 */
+
+  /* 시맨틱 3종 — 안전 신호다. "액센트 1개·채도 80% 미만" 규칙을 적용하지 않는다. */
+  --color-danger: #b3241a; /* 면·테두리. 흰 글자 6.60 = 큰 글씨 AAA */
+  --color-danger-ink: #8c1c14; /* 글자 (8.64) tint 위 7.88 */
+  --color-danger-tint: #fceae7;
+  --color-warn: #a8710a; /* 테두리 (3.93) */
+  --color-warn-ink: #6e4800; /* 글자 (7.64) tint 위 7.24 */
+  --color-warn-tint: #fbf1de;
+  --color-ok: #14663b;
+  --color-ok-ink: #0f5531; /* 글자 (8.37) tint 위 7.72 */
+  --color-ok-tint: #e6f2ea;
+
+  /* ── 타이포 ────────────────────────────────────────────────
+     한글 규칙: 트래킹 가동범위는 −0.015em ~ +0.01em 뿐이다. 라틴의 −0.04em 은
+     존재하지 않는 예산 — 글자 사이 흰공간이 자소 사이보다 좁아지면 "국민"이 한 덩어리가 된다.
+     행간은 반대로 늘린다. 콘텐츠 영역이 1.22em 이라 leading-none 은 받침이 잘린다. */
+  --text-hero: 3.5rem; /* 56px 결과 화면 단일 최대값 */
+  --text-hero--line-height: 1.15;
+  --text-hero--letter-spacing: -0.01em;
+  --text-hero--font-weight: 700;
+
+  --text-value: 2.75rem; /* 44px 핵심 값 */
+  --text-value--line-height: 1.2;
+  --text-value--letter-spacing: -0.01em;
+  --text-value--font-weight: 700;
+
+  --text-lead: 1.75rem; /* 28px 어르신 안내문·버튼 라벨 */
+  --text-lead--line-height: 1.45;
+  --text-lead--font-weight: 700;
+
+  --text-body: 1.5rem; /* 24px 어르신 본문 */
+  --text-body--line-height: 1.7;
+
+  --text-note: 1.25rem; /* 20px 어르신 절대 하한 */
+  --text-note--line-height: 1.6;
+  --text-note--letter-spacing: 0.01em;
+
+  --text-g-title: 1.25rem; /* 20px 자녀 카드 제목 */
+  --text-g-title--line-height: 1.4;
+  --text-g-title--letter-spacing: -0.005em;
+  --text-g-title--font-weight: 700;
+
+  --text-g-body: 1.0625rem; /* 17px 자녀 본문 하한 (iOS 자동확대 회피) */
+  --text-g-body--line-height: 1.7;
+
+  --text-g-meta: 0.9375rem; /* 15px 메타 전용. 검사 결과엔 쓰지 않는다 */
+  --text-g-meta--line-height: 1.6;
+
+  /* ── 터치 ──────────────────────────────────────────────── */
+  --spacing-tap: 3rem; /* 48px 자녀 최소 (SC 2.5.5 AAA) */
+  --spacing-tap-elder: 4rem; /* 64px 어르신 최소 */
+
+  /* ── 표면 ──────────────────────────────────────────────────
+     동심원 규칙: 카드 20px, 내부 패딩 10px → 내부 요소 10px. 원형은 촬영 버튼 하나만 예외. */
+  --radius-card: 20px;
+  --radius-control: 14px;
+  --radius-inner: 10px;
+  --radius-chip: 8px;
+
+  /* 그림자는 배경 색조로 틴트한다. 순수 검정 금지. 경계의 유일한 수단으로 쓰지 않는다 — 항상 border 동반. */
+  --shadow-card: 0 1px 2px rgb(20 35 60 / 0.06), 0 8px 20px -12px rgb(20 35 60 / 0.18);
+  --shadow-raise: 0 2px 4px rgb(20 35 60 / 0.08), 0 16px 32px -16px rgb(20 35 60 / 0.22);
+
+  /* ── 모션 ── 화면당 1개 이하 · 120~200ms · transform/opacity 만 · 스태거 금지 */
+  --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* 어르신 화면은 밝기·대비를 고정한다. 노안은 광 산란으로 어두운 배경에서 헤일레이션이 심하다. */
 html {
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
@@ -16,7 +126,66 @@ html {
 @layer base {
   body {
     font-family: var(--font-sans);
+    background: var(--color-paper);
+    color: var(--color-ink);
     word-break: keep-all;
     overflow-wrap: break-word;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "fwid" 0, "dlig" 0;
+    /* antialiased 를 쓰지 않는다. KoddiUD Regular 세로획이 24px 에서 1.8px 인데 더 얇아진다. */
+  }
+
+  /* 저시력에 포커스 링은 장식이 아니다. 지우지 말고 두껍게. */
+  :focus-visible {
+    outline: 3px solid var(--color-brand);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .on-brand:focus-visible {
+    outline-color: var(--color-surface);
+  }
+
+  /* 눌렀다는 신호를 지우지 않는다. */
+  button,
+  a {
+    -webkit-tap-highlight-color: rgb(26 79 139 / 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  @media (prefers-contrast: more) {
+    :root {
+      --color-line: #3a424d;
+      --color-ink-soft: #2a323c;
+    }
+  }
+}
+
+@layer utilities {
+  /* 결과 진입: 값 전체가 동시에 한 번. reduced-motion 에서는 opacity 만 남는다. */
+  .enter-once {
+    animation: enter-once 180ms var(--ease-out-soft) both;
+  }
+  @keyframes enter-once {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  /* 눌림 피드백은 배경 전환으로. 터치 타깃에 scale() 을 쓰지 않는다. */
+  .press {
+    transition: background-color 120ms var(--ease-out-soft), border-color 120ms var(--ease-out-soft);
   }
 }

@@ -12,7 +12,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   // 확대를 막지 않는다. 저시력 어르신에게서 핀치 줌을 뺏으면 안 된다.
-  themeColor: "#1a4f8b",
+  // 상단바 색은 페이지 배경과 같아야 실기기에서 이음매가 안 보인다.
+  themeColor: "#faf8f4",
 };
 
 export default function RootLayout({
@@ -22,9 +23,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko">
-      <body className="min-h-dvh bg-white text-neutral-900 antialiased">
-        {children}
-      </body>
+      <head>
+        {/* 콜드 로드에서 폴백 서체로 첫 화면이 뜨는 시간을 줄인다. */}
+        <link rel="preload" href="/fonts/koddi-700.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/koddi-400.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
+      <body className="min-h-dvh bg-paper text-ink">{children}</body>
     </html>
   );
 }

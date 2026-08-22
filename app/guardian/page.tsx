@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { VERDICT_LABEL } from "@/lib/verify";
 import type { Verdict } from "@/lib/types";
 import type { GuardianDoc } from "@/lib/dto";
 import CheckList from "@/components/CheckList";
 import BenefitHints from "@/components/BenefitHints";
+import { Phone, ArrowSquareOut, Tray, Envelope } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
 // 다만 실행 경로가 되는 연락처·링크는 레지스트리 값만 쓴다 — 문서에서 읽은 값은 표시만 한다.
@@ -14,15 +16,16 @@ import BenefitHints from "@/components/BenefitHints";
 const LIST_MS = 3000;
 const DETAIL_MS = 3000;
 
+// 판정 색은 테두리로. amber-400(1.67:1) 같은 값은 저시력에 보이지 않는다.
 const TONE: Record<string, string> = {
-  mismatch: "border-red-500 bg-red-50",
-  review: "border-amber-400 bg-amber-50",
-  unknown_issuer: "border-neutral-400 bg-neutral-50",
-  needs_human: "border-neutral-400 bg-neutral-50",
-  not_checkable: "border-neutral-400 bg-neutral-50",
-  failed: "border-neutral-300 bg-neutral-50",
-  no_extract: "border-neutral-200 bg-neutral-50",
-  clear: "border-neutral-200 bg-white",
+  mismatch: "border-danger bg-danger-tint",
+  review: "border-warn bg-warn-tint",
+  unknown_issuer: "border-line bg-surface",
+  needs_human: "border-line bg-surface",
+  not_checkable: "border-line bg-surface",
+  failed: "border-line-soft bg-surface",
+  no_extract: "border-line-soft bg-surface",
+  clear: "border-line bg-surface",
 };
 
 // 화면 표시용. 검증 계층과 같은 문법만 허용한다 — "1,,,,2원" 이 "12원" 으로 보이면 안 된다.
@@ -40,6 +43,8 @@ function text(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v : null;
 }
 
+const NEEDS_ATTENTION = new Set(["mismatch", "review", "unknown_issuer", "needs_human", "not_checkable"]);
+
 type Auth = "checking" | "need-login" | "ok" | "unconfigured";
 
 export default function Guardian() {
@@ -48,6 +53,8 @@ export default function Guardian() {
   const [loginError, setLoginError] = useState("");
   const [docs, setDocs] = useState<GuardianDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // 되돌릴 수 없는 동작(어르신 화면까지 바뀐다)은 한 번 더 묻는다. 모달·길게누르기 아님.
+  const [confirmDone, setConfirmDone] = useState<string | null>(null);
   const inFlight = useRef<Set<string>>(new Set());
   const listInFlight = useRef(false);
 
@@ -108,7 +115,6 @@ export default function Guardian() {
   useEffect(() => {
     if (auth !== "ok") return;
     const ac = new AbortController();
-    // 탭이 가려져 있으면 조회하지 않는다.
     const tick = () => {
       if (document.visibilityState === "visible") void load(ac.signal);
     };
@@ -124,8 +130,7 @@ export default function Guardian() {
   }, [auth, load]);
 
   // 목록 API 는 Upstage 를 부르지 않는다. 판정 없는 문서는 여기서 끌어와야
-  // 어르신 화면을 닫아도 자녀 화면이 스스로 완료된다.
-  // 타이머 하나로 돈다. docs 변화에 반응하면 RTT 마다 재호출하는 tight loop 이 된다.
+  // 어르신 화면을 닫아도 자녀 화면이 스스로 완료된다. 타이머 하나로 돈다.
   useEffect(() => {
     if (auth !== "ok") return;
     const ac = new AbortController();
@@ -153,6 +158,7 @@ export default function Guardian() {
   }, [auth, docs]);
 
   async function mark(id: string, resolution: "acknowledged" | "done") {
+    setConfirmDone(null);
     try {
       const res = await fetch(`/api/documents/${id}`, {
         method: "PATCH",
@@ -171,15 +177,27 @@ export default function Guardian() {
     }
   }
 
+  const Header = (
+    <header className="mb-6 flex items-center gap-3 text-brand">
+      <Envelope size={28} />
+      <h1 className="text-g-title text-ink">부모님 우편물</h1>
+    </header>
+  );
+
   if (auth === "checking") {
-    return <main className="mx-auto max-w-2xl p-6 text-neutral-500">확인 중…</main>;
+    return (
+      <main className="mx-auto max-w-2xl px-5 py-8">
+        {Header}
+        <p className="text-g-body text-ink-soft">확인 중…</p>
+      </main>
+    );
   }
 
   if (auth === "unconfigured") {
     return (
-      <main className="mx-auto max-w-2xl p-6">
-        <h1 className="mb-2 text-2xl font-bold">부모님 우편물</h1>
-        <p className="text-neutral-700">
+      <main className="mx-auto max-w-2xl px-5 py-8">
+        {Header}
+        <p className="text-g-body text-ink-mid">
           서버에 자녀 화면 암구호(<code>GUARDIAN_PASSPHRASE</code>)가 설정되지 않았습니다.
         </p>
       </main>
@@ -188,41 +206,52 @@ export default function Guardian() {
 
   if (auth === "need-login") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center p-6">
-        <h1 className="mb-1 text-2xl font-bold">부모님 우편물</h1>
-        <p className="mb-6 text-sm leading-relaxed text-neutral-500">
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-5 py-8">
+        {Header}
+        <p className="mb-6 text-g-body text-ink-mid">
           부모님 우편물 내용을 보는 화면입니다. 암구호를 입력해 주세요.
         </p>
         <form onSubmit={login} className="flex flex-col gap-3">
+          <label htmlFor="passphrase" className="text-g-body font-bold text-ink">
+            암구호
+          </label>
           <input
+            id="passphrase"
             type="password"
             autoComplete="current-password"
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
-            placeholder="암구호"
-            className="rounded-xl border-2 border-neutral-300 px-4 py-3 text-lg"
+            className="min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-title text-ink"
             required
           />
           <button
             type="submit"
-            className="rounded-xl bg-neutral-800 px-4 py-3 text-base font-semibold text-white"
+            className="press on-brand min-h-tap rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
           >
             들어가기
           </button>
-          {loginError && <p className="text-sm text-red-700">{loginError}</p>}
+          {loginError && (
+            <p className="text-g-body text-danger-ink" aria-live="polite">
+              {loginError}
+            </p>
+          )}
         </form>
       </main>
     );
   }
 
-  return (
-    <main className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">부모님 우편물</h1>
-      <p className="mb-6 text-sm leading-relaxed text-neutral-500">
-        어르신이 찍으면 여기에 바로 올라옵니다
-      </p>
+  const attention = docs.filter((d) => d.result && NEEDS_ATTENTION.has(d.verdict ?? "") && d.resolution_status !== "done").length;
 
-      <div className="space-y-4">
+  return (
+    <main className="mx-auto max-w-2xl px-5 py-8">
+      {Header}
+      {docs.length > 0 && (
+        <p className="mb-5 text-g-body tabular-nums text-ink-mid">
+          확인 필요 <strong className="text-ink">{attention}</strong> · 전체 <strong className="text-ink">{docs.length}</strong>
+        </p>
+      )}
+
+      <div className="space-y-5">
         {docs.map((d) => {
           const r = d.result;
           const f = (r?.fields ?? {}) as Record<string, unknown>;
@@ -231,30 +260,30 @@ export default function Guardian() {
           const due = text(f.due_date) ?? text(f.apply_deadline);
           const officialPhone = r?.safeContact?.phones?.[0];
           const officialHost = r?.safeContact?.hosts?.[0];
+          const title = d.phrases?.docLabel ?? (r ? "우편물" : d.pipeline_status === "failed" ? "처리 실패" : "읽는 중…");
 
           return (
             <article
               key={d.id}
-              className={`rounded-2xl border-2 p-5 ${TONE[d.verdict ?? ""] ?? "border-neutral-200"}`}
+              className={`rounded-card border-2 p-5 shadow-card ${TONE[d.verdict ?? ""] ?? "border-line-soft bg-surface"}`}
             >
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-lg font-bold">
-                  {d.phrases?.docLabel ??
-                    (r ? "우편물" : d.pipeline_status === "failed" ? "처리 실패" : "읽는 중…")}
-                </h2>
-                <span className="shrink-0 text-sm font-semibold">
-                  {d.verdict ? VERDICT_LABEL[d.verdict as Verdict] : ""}
-                </span>
+                <h2 className="min-w-0 text-g-title text-ink">{title}</h2>
+                {d.verdict && (
+                  <span className="shrink-0 text-g-body font-bold text-ink-mid">
+                    {VERDICT_LABEL[d.verdict as Verdict]}
+                  </span>
+                )}
               </div>
 
-              {r && (
-                <p className="mt-2 text-sm leading-relaxed text-neutral-700">
+              {r && (issuer || amount || due) && (
+                <p className="mt-1 text-g-body text-ink-mid">
                   {[issuer, amount, due && `${due}까지`].filter(Boolean).join(" · ")}
                 </p>
               )}
 
               {r && (
-                <div className="mt-3">
+                <div className="mt-4">
                   <CheckList result={r} />
                 </div>
               )}
@@ -262,30 +291,32 @@ export default function Guardian() {
               {r && <BenefitHints result={r} />}
 
               {r?.reasons && r.reasons.length > 0 && (
-                <ul className="mt-3 space-y-1 text-sm leading-relaxed">
-                  {r.reasons.map((x, i) => (
-                    <li
-                      key={i}
-                      className={
-                        x.rule === "R3" || x.rule === "R5" ? "text-neutral-600" : "text-red-700"
-                      }
-                    >
-                      · [{x.rule}] {x.detail}
-                      <span className="text-neutral-500"> → {x.action}</span>
-                    </li>
-                  ))}
+                <ul className="mt-4 space-y-2 text-g-body">
+                  {r.reasons.map((x, i) => {
+                    const soft = x.rule === "R3" || x.rule === "R5";
+                    return (
+                      <li key={i} className={soft ? "text-ink-mid" : "text-danger-ink"}>
+                        {x.detail}
+                        <span className="text-ink-soft"> → {x.action}</span>
+                        <span className="ml-2 rounded-chip bg-paper px-1.5 py-0.5 font-mono text-g-meta text-ink-soft">
+                          {x.rule}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
 
               {/* 실행 경로는 레지스트리 값만. 문서에서 읽은 번호·링크는 링크가 되지 않는다. */}
               {r && (officialPhone || officialHost) && (
-                <div className="mt-3 flex flex-wrap gap-2 text-sm">
+                <div className="mt-4 flex flex-wrap gap-2">
                   {officialPhone && (
                     <a
                       href={`tel:${officialPhone}`}
-                      className="rounded-lg border border-neutral-300 bg-white px-3 py-2 font-medium"
+                      className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-g-body font-bold text-ink active:bg-brand-tint"
                     >
-                      📞 공식 대표번호 {officialPhone}
+                      <Phone size={20} />
+                      공식 대표번호 {officialPhone}
                     </a>
                   )}
                   {officialHost && (
@@ -293,38 +324,61 @@ export default function Guardian() {
                       href={`https://${officialHost}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg border border-neutral-300 bg-white px-3 py-2 font-medium"
+                      className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink active:bg-brand-tint"
                     >
-                      🔗 공식 사이트 열기
+                      <ArrowSquareOut size={18} />
+                      공식 사이트
                     </a>
                   )}
                 </div>
               )}
 
               {r && (
-                <div className="mt-4 flex gap-2">
-                  <button
-                    onClick={() => mark(d.id, "acknowledged")}
-                    disabled={d.resolution_status !== "new"}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                      d.resolution_status !== "new"
-                        ? "bg-neutral-200 text-neutral-500"
-                        : "bg-neutral-800 text-white"
-                    }`}
-                  >
-                    {d.resolution_status === "new" ? "확인함" : "확인됨"}
-                  </button>
-                  <button
-                    onClick={() => mark(d.id, "done")}
-                    disabled={d.resolution_status === "done"}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                      d.resolution_status === "done"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-neutral-800 text-white"
-                    }`}
-                  >
-                    {d.resolution_status === "done" ? "처리 완료됨" : "처리 완료"}
-                  </button>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {confirmDone === d.id ? (
+                    <>
+                      <span className="flex min-h-tap items-center text-g-body text-ink">
+                        완료로 표시할까요? 어르신 화면도 바뀝니다.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => mark(d.id, "done")}
+                        className="press on-brand min-h-tap rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+                      >
+                        완료
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDone(null)}
+                        className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body text-ink active:bg-brand-tint"
+                      >
+                        취소
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => mark(d.id, "acknowledged")}
+                        disabled={d.resolution_status !== "new"}
+                        className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body font-bold text-ink active:bg-brand-tint disabled:border-line-soft disabled:text-ink-soft"
+                      >
+                        {d.resolution_status === "new" ? "확인함" : "확인됨"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDone(d.id)}
+                        disabled={d.resolution_status === "done"}
+                        className={`press min-h-tap rounded-control border-2 px-4 text-g-body font-bold ${
+                          d.resolution_status === "done"
+                            ? "border-ok bg-ok-tint text-ok-ink"
+                            : "on-brand border-brand bg-brand text-surface active:bg-brand-deep"
+                        }`}
+                      >
+                        {d.resolution_status === "done" ? "처리 완료됨" : "처리 완료"}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </article>
@@ -332,7 +386,16 @@ export default function Guardian() {
         })}
 
         {loaded && docs.length === 0 && (
-          <p className="text-neutral-500">아직 받은 우편물이 없습니다.</p>
+          <div className="flex flex-col items-center gap-3 rounded-card border-2 border-line-soft bg-surface px-6 py-12 text-center">
+            <span className="text-ink-soft">
+              <Tray size={48} />
+            </span>
+            <p className="text-g-title text-ink">아직 받은 우편물이 없습니다</p>
+            <p className="text-g-body text-ink-mid">어르신이 사진을 찍으면 여기에 올라옵니다.</p>
+            <Link href="/elder" className="mt-2 text-g-body font-bold text-brand underline underline-offset-4">
+              어르신 화면 열기
+            </Link>
+          </div>
         )}
       </div>
     </main>

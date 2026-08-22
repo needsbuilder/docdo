@@ -5,6 +5,7 @@ import { compress } from "@/lib/compress";
 import { primeSpeech, speak } from "@/lib/speak";
 import { pollDocument, PollTimeout, type DocView } from "@/lib/poll";
 import ElderResult from "@/components/ElderResult";
+import { Camera } from "@/components/icons";
 
 type Stage = "idle" | "uploading" | "waiting" | "done" | "error";
 
@@ -15,6 +16,9 @@ const WAIT_TEXT = [
   "사진 상태에 따라 조금 더 걸릴 수 있어요",
   "분석은 계속돼요. 잠시만 기다려 주세요",
 ];
+
+// 관측된 처리시간 4.1~26.2초(n=12). P95 가 아니다 — 진행 바는 이 범위를 따라가되 끝까지 차지 않는다.
+const OBSERVED_MAX_S = 26;
 
 function waitLine(seconds: number): string {
   if (seconds > 45) return WAIT_TEXT[3];
@@ -27,6 +31,7 @@ export default function Elder() {
   const [seconds, setSeconds] = useState(0);
   const [doc, setDoc] = useState<DocView | null>(null);
   const [errorText, setErrorText] = useState("잠시 문제가 있었어요");
+  const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   // 사진을 고를 때마다 올라간다. 늦게 끝난 압축이 최신 선택을 덮어쓰지 못하게.
@@ -50,6 +55,13 @@ export default function Elder() {
       aborts.current?.abort();
     };
   }, []);
+
+  // 방금 찍은 사진의 object URL 은 화면을 떠날 때 반드시 놓는다.
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
   const submit = useCallback(async (f: File, pick: number) => {
     if (pick !== pickRef.current || !mountedRef.current) return;
@@ -75,7 +87,6 @@ export default function Elder() {
       const result = await pollDocument(id, { signal: ac.signal });
       if (stale()) return;
 
-      // 문구가 없으면 결과 화면을 띄울 수 없다. 흰 화면 대신 오류로 보낸다.
       if (!result.phrases || !result.result) {
         setErrorText(result.error ?? "이 사진을 처리하지 못했어요");
         setStage("error");
@@ -98,11 +109,14 @@ export default function Elder() {
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    // 같은 파일을 다시 골라도 change 가 뜨도록 값을 비운다.
     e.target.value = "";
     if (!f) return;
     const pick = ++pickRef.current;
-    // 압축에도 몇 초가 걸린다. 그동안 화면이 멈춰 보이면 안 된다.
+    // 어르신에게 "내 사진이 처리 중"이라는 구체적 근거를 보여준다. 범용 스피너가 아니다.
+    setPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return URL.createObjectURL(f);
+    });
     setStage("uploading");
     setSeconds(0);
     const { file } = await compress(f);
@@ -111,7 +125,6 @@ export default function Elder() {
 
   function onShoot() {
     // iOS 는 첫 발화가 사용자 제스처 안에서 일어나야 한다.
-    // 여기서 풀어두지 않으면 판독 완료 후의 speak() 가 조용히 무시된다.
     primeSpeech();
     inputRef.current?.click();
   }
@@ -120,6 +133,10 @@ export default function Elder() {
     pickRef.current++;
     abortRef.current?.abort();
     setDoc(null);
+    setPreview((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return null;
+    });
     setStage("idle");
   }
 
@@ -127,23 +144,24 @@ export default function Elder() {
     return <ElderResult doc={doc} onReset={reset} />;
   }
 
+  const progress = Math.min(0.92, seconds / OBSERVED_MAX_S);
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-8 p-6">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-10 px-6 py-10">
       {stage === "idle" && (
         <>
-          <p className="text-center text-2xl font-semibold leading-relaxed">
+          <h1 className="text-center text-lead text-ink">
             우편물을
             <br />
             사진으로 찍어주세요
-          </p>
+          </h1>
           <button
+            type="button"
             onClick={onShoot}
-            className="flex h-56 w-56 flex-col items-center justify-center gap-3 rounded-full bg-[#1a4f8b] text-white shadow-lg active:scale-95"
+            className="press on-brand flex h-56 w-56 flex-col items-center justify-center gap-3 rounded-full border-4 border-brand bg-brand text-surface shadow-raise active:bg-brand-deep"
           >
-            <span className="text-6xl" aria-hidden>
-              📷
-            </span>
-            <span className="text-2xl font-bold">사진 찍기</span>
+            <Camera size={72} />
+            <span className="text-lead">사진 찍기</span>
           </button>
           <input
             ref={inputRef}
@@ -157,20 +175,35 @@ export default function Elder() {
       )}
 
       {(stage === "uploading" || stage === "waiting") && (
-        <div className="flex flex-col items-center gap-6" aria-live="polite">
-          <div className="h-20 w-20 animate-spin rounded-full border-8 border-neutral-200 border-t-[#1a4f8b]" />
-          <p className="text-center text-2xl font-semibold leading-relaxed">
+        <div className="flex w-full flex-col items-center gap-6" aria-live="polite">
+          {preview && (
+            // 찍은 사진 그대로. 결과와 무관하게 "이 종이"를 처리 중이라는 신호다.
+            <div className="w-full max-w-[22em] overflow-hidden rounded-card border-2 border-line bg-surface shadow-card">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt="방금 찍은 우편물" className="block max-h-[46dvh] w-full object-contain" />
+            </div>
+          )}
+          <div className="w-full max-w-[22em]">
+            <div className="h-3 w-full overflow-hidden rounded-chip border border-line bg-surface">
+              <div
+                className="h-full bg-brand transition-[width] duration-1000 ease-linear"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </div>
+          </div>
+          <p className="text-center text-lead text-ink">
             {stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}
           </p>
         </div>
       )}
 
       {stage === "error" && (
-        <div className="flex flex-col items-center gap-6">
-          <p className="text-center text-2xl font-semibold leading-relaxed">{errorText}</p>
+        <div className="flex flex-col items-center gap-6" aria-live="assertive">
+          <p className="text-center text-lead text-ink">{errorText}</p>
           <button
+            type="button"
             onClick={reset}
-            className="rounded-2xl bg-[#1a4f8b] px-8 py-5 text-2xl font-bold text-white"
+            className="press on-brand min-h-tap-elder rounded-control border-2 border-brand bg-brand px-8 text-lead text-surface active:bg-brand-deep"
           >
             다시 찍기
           </button>
