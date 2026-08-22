@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { speak, stopSpeaking } from "@/lib/speak";
+import { speak, stopSpeaking, getVoice, setVoice, type VoiceKey } from "@/lib/speak";
 import { elderHeaders, type DocView } from "@/lib/poll";
 import AppBar from "@/components/AppBar";
 import { Warning, Phone, SpeakerHigh, PaperPlaneTilt, Eye, CheckCircle } from "@/components/icons";
@@ -34,7 +34,15 @@ export default function ElderResult({
   onReset: () => void;
 }) {
   const [cur, setCur] = useState<DocView>(doc);
+  // 이 컴포넌트는 클라이언트에서만 마운트된다(판독 완료 후). 초기값을 저장소에서 바로 읽어도 된다.
+  const [voice, setVoiceState] = useState<VoiceKey>(() => getVoice());
   const stoppedRef = useRef(false);
+
+  function pickVoice(v: VoiceKey) {
+    setVoice(v);
+    setVoiceState(v);
+    speak(p?.speech ?? "", { elderToken, voice: v });
+  }
 
   // 자녀가 '처리 완료'를 누르면 이 화면이 스스로 바뀐다 — 닫힌 루프.
   useEffect(() => {
@@ -161,12 +169,28 @@ export default function ElderResult({
 
         <button
           type="button"
-          onClick={() => speak(p.speech)}
+          onClick={() => speak(p.speech, { elderToken, voice })}
           className="press flex min-h-tap-elder items-center justify-center gap-3 rounded-control border-2 border-brand bg-surface px-6 text-lead text-brand active:bg-brand-tint"
         >
           <SpeakerHigh size={32} />
           다시 듣기
         </button>
+        {/* 목소리 고르기. 누르면 그 목소리로 바로 다시 읽는다 — 설정 화면을 따로 두지 않는다. */}
+        <div className="flex gap-2" role="group" aria-label="목소리">
+          {(["m", "f"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={voice === v}
+              onClick={() => pickVoice(v)}
+              className={`press min-h-tap-elder flex-1 rounded-control border-2 px-4 text-body ${
+                voice === v ? "border-brand bg-brand-tint text-brand" : "border-line bg-surface text-ink-mid"
+              }`}
+            >
+              {v === "m" ? "남자 목소리" : "여자 목소리"}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           onClick={() => {
