@@ -28,9 +28,7 @@
         "건강보험료",
         "장기요양보험료"
       ],
-      "phone_prefixes": [
-        "1577-1000"
-      ]
+      "phone_prefixes": []
     },
     {
       "issuer_id": "mohw",
@@ -61,10 +59,7 @@
         "복지 신청 안내",
         "기초연금 안내"
       ],
-      "phone_prefixes": [
-        "129",
-        "1335"
-      ]
+      "phone_prefixes": []
     },
     {
       "issuer_id": "nps",
@@ -90,9 +85,7 @@
         "국민연금",
         "기초연금 신청"
       ],
-      "phone_prefixes": [
-        "1355"
-      ]
+      "phone_prefixes": []
     },
     {
       "issuer_id": "kepco",
@@ -119,9 +112,7 @@
       "doc_types": [
         "전기요금"
       ],
-      "phone_prefixes": [
-        "123"
-      ]
+      "phone_prefixes": []
     },
     {
       "issuer_id": "pohang",
@@ -159,5 +150,5 @@
     }
   ],
   "pending": [],
-  "prefix_note": "phone_prefixes: 같은 기관의 부서 직통번호를 인정하기 위한 국번 대역. 054-270-6230(세무과)과 054-270-8282(대표)는 같은 기관이다."
+  "prefix_note": "phone_prefixes는 지역번호+국번(054-270)에만 쓴다. 대표번호(1577-1000/129/123/1355)는 prefix가 아니라 정확 일치만 허용한다 — '1577-1000-666' 같은 값이 통과하기 때문이다."
 }

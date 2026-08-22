@@ -10,29 +10,36 @@ REG = json.load(open(os.path.join(ROOT, "registry", "issuer_registry.json")))
 def norm_phone(p):
     return re.sub(r"[^0-9]", "", p or "")
 
+ALLOWED_SCHEME = {"http", "https"}
+
 def norm_host(u):
-    """URL 문자열에서 host만 뽑는다. 경계 비교용 — 부분 문자열 검사 금지."""
-    if not u:
+    """URL에서 host만 뽑는다. 경계 비교용 — 부분 문자열 검사 금지.
+    파싱 실패·비허용 scheme·userinfo·제어문자는 전부 빈 값으로 닫는다(fail-closed)."""
+    if not u or not str(u).strip():
         return ""
-    s = u.strip()
-    if "://" not in s:
+    s = str(u).strip()
+    if "\\" in s or any(ord(c) < 32 or ord(c) == 127 for c in s):
+        return ""
+    if "://" in s:
+        if s.split("://", 1)[0].lower() not in ALLOWED_SCHEME:
+            return ""
+    else:
         s = "http://" + s
-    h = (urlparse(s).hostname or "").lower()
+    try:
+        pr = urlparse(s)
+        if pr.username or pr.password:
+            return ""
+        _ = pr.port                      # 잘못된 포트면 ValueError
+        h = (pr.hostname or "").lower()
+    except Exception:
+        return ""
+    if not h or " " in h:
+        return ""
     return h[4:] if h.startswith("www.") else h
 
-ORG_SUFFIX = re.compile(r"(지사|지역본부|본부|지점|센터|출장소|사무소|행정복지센터|주민센터|과$|팀$|담당관?$)")
-
-def strip_org(name):
-    """발급기관에서 지사·부서·팀명을 떼어 최상위 기관명만 남긴다."""
-    if not name:
-        return ""
-    toks = name.split()
-    keep = []
-    for t in toks:
-        if ORG_SUFFIX.search(t) and keep:
-            break
-        keep.append(t)
-    return " ".join(keep) if keep else name
+# alias 뒤에 붙어도 같은 기관으로 인정하는 하위 조직 꼬리
+BRANCH_TAIL = re.compile(r"^([가-힣A-Za-z0-9]{0,12}(지사|지역본부|본부|지점|센터|출장소|사무소|과|팀|담당관|반|부))+$")
+MIN_ALIAS = 3
 
 MOBILE = re.compile(r"^01[016789]")
 
@@ -42,14 +49,25 @@ def is_personal_mobile(phone):
     return bool(MOBILE.match(norm_phone(phone)))
 
 def find_issuer(name):
-    if not name:
+    """기관명 매칭. 정확 일치 우선, 그다음 'alias로 시작 + 나머지가 하위 조직 꼬리'만 인정한다.
+    역방향 부분 문자열 매칭은 하지 않는다 — '공단'·'민'이 매칭되고 '가짜국민연금공단'이 통과한다."""
+    if not name or not str(name).strip():
         return None
-    n = re.sub(r"\s", "", strip_org(name))
+    n = re.sub(r"\s+", "", str(name))
+    if len(n) < MIN_ALIAS:
+        return None
+    best = None
     for it in REG["issuers"]:
         for a in it["aliases"]:
-            if re.sub(r"\s", "", a) in n or n in re.sub(r"\s", "", a):
+            na = re.sub(r"\s+", "", a)
+            if len(na) < MIN_ALIAS:
+                continue
+            if n == na:
                 return it
-    return None
+            if n.startswith(na) and BRANCH_TAIL.match(n[len(na):]):
+                if best is None or len(na) > best[1]:
+                    best = (it, len(na))
+    return best[0] if best else None
 
 def pick_steps(job):
     """output[].model로 단계를 찾는다. 배열 순번 금지 — 분기로 단계가 생략될 수 있다."""
@@ -71,7 +89,17 @@ def pick_steps(job):
         elif "validate" in m: steps["validate"] = (val, av or {})
     return steps
 
+REQUIRED_FIELDS = {"pay": ["issuer", "amount_krw", "due_date"],
+                   "apply": ["issuer", "apply_deadline"],
+                   "info": ["issuer"]}
+
 def verify(job):
+    # 잡 상태를 먼저 강제한다. stale output으로 통과시키지 않는다.
+    if job.get("status") != "completed":
+        return {"verdict": "failed", "reason": f"job status={job.get('status')}"}
+    for o in job.get("output", []):
+        if o.get("status") not in (None, "completed"):
+            return {"verdict": "failed", "reason": f"step {o.get('model')} status={o.get('status')}"}
     st = pick_steps(job)
     if "classify" not in st:
         return {"verdict": "failed", "reason": "classify 단계 없음"}
@@ -91,26 +119,45 @@ def verify(job):
         return out
 
     if "extract" not in st:
-        out["verdict"] = "no_extract"
-        out["note"] = "미매핑 타입 — Extract 단계가 실행되지 않음 (정상)"
+        if doc_type in ("pay", "apply", "info"):
+            out["verdict"] = "failed"
+            out["reason"] = f"'{doc_type}' 문서인데 Extract 단계가 없음 — 파이프라인 오류"
+        else:
+            out["verdict"] = "no_extract"
+            out["note"] = "의도적 미매핑 타입 — 추출 생략. 자녀 목록에는 남는다"
         return out
 
-    fields = st["extract"][0] or {}
+    raw_fields = st["extract"][0] or {}
+    if not isinstance(raw_fields, dict):
+        return {"verdict": "failed", "reason": "Extract 출력이 객체가 아님"}
     av = st["extract"][1] or {}
     conf = {k: v.get("confidence") for k, v in av.items() if isinstance(v, dict) and "_value" in v}
+    ALLOW = {"issuer", "doc_title", "epn", "amount_krw", "issue_date", "due_date",
+             "contact_phone", "info_url", "payee_name",
+             "apply_deadline", "required_docs", "where_to_apply", "summary"}
+    dropped = sorted(set(raw_fields) - ALLOW)
+    fields = {k: v for k, v in raw_fields.items() if k in ALLOW}
     out["fields"] = fields
+    if dropped:
+        out["dropped_fields"] = dropped   # 허용목록 밖 필드는 보관하지 않는다
+
+    # 필수 필드 결손도 낭독 억제 대상 (R3)
+    missing = [k for k in REQUIRED_FIELDS.get(doc_type, []) if not str(fields.get(k) or "").strip()]
     out["field_confidence"] = conf
 
     # R3 — 신뢰도 게이트: 핵심 필드에 low가 있으면 숫자를 말하지 않는다
     CORE = ["amount_krw", "due_date", "apply_deadline", "issuer"]
     low_core = [k for k in CORE if conf.get(k) == "low"]
-    out["speech_suppressed"] = bool(low_core)
+    out["speech_suppressed"] = bool(low_core or missing)
     if low_core:
         out["reasons"].append({"rule": "R3", "detail": f"핵심 필드 신뢰도 낮음: {', '.join(low_core)}", "action": "숫자 낭독 억제 + 자녀 확인"})
+    if missing:
+        out["reasons"].append({"rule": "R3", "detail": f"필수 필드 결손: {', '.join(missing)}", "action": "숫자 낭독 억제 + 자녀 확인"})
 
     # R4 — 개인 휴대전화 상담번호 (레지스트리 무관)
     phone_raw = fields.get("contact_phone")
     mobile_hit = bool(phone_raw) and is_personal_mobile(phone_raw)
+    mobile_strong = mobile_hit and conf.get("contact_phone") == "high"
     if mobile_hit:
         out["reasons"].append({"rule": "R4",
             "detail": f"고지서 상담 번호가 개인 휴대전화입니다: {phone_raw}",
@@ -120,7 +167,7 @@ def verify(job):
     issuer_name = fields.get("issuer")
     issuer = find_issuer(issuer_name)
     if not issuer:
-        out["verdict"] = "mismatch" if mobile_hit else "unknown_issuer"
+        out["verdict"] = "mismatch" if mobile_strong else "unknown_issuer"
         if not mobile_hit:
             out["reasons"].append({"rule": "R1", "detail": f"레지스트리에 없는 기관: {issuer_name}", "action": "판단 불가 — 자녀 확인"})
         out["checks"].append({"name": "상담 번호 형식", "value": phone_raw,
@@ -140,6 +187,9 @@ def verify(job):
         prefix = any(np.startswith(norm_phone(x)) for x in issuer.get("phone_prefixes", []) if x)
         ok = exact or prefix
         note = None if exact else ("같은 국번 대역 — 부서 직통번호로 인정" if prefix else None)
+        if ok and conf.get("contact_phone") != "high":
+            ok, note = None, "읽기가 불확실해 대조 결과를 인정하지 않음"
+            out["reasons"].append({"rule": "R3", "detail": "문의전화 읽기가 불확실함", "action": "자녀 확인"})
         out["checks"].append({"name": "문의전화", "value": phone, "ok": ok, "note": note,
                               "expected": issuer["official_phones"], "conf": conf.get("contact_phone"),
                               "kind": "phone"})
@@ -148,16 +198,27 @@ def verify(job):
                               "note": "문서에서 읽지 못함"})
     if url and url.strip():
         h = norm_host(url)
-        ok = h in [norm_host(x) for x in issuer["official_hosts"]]
-        exp = sorted(set(norm_host(x) for x in issuer["official_hosts"]))
-        out["checks"].append({"name": "안내 주소", "value": h, "ok": ok, "expected": exp,
-                              "conf": conf.get("info_url"), "kind": "host"})
+        if not h:
+            out["checks"].append({"name": "안내 주소", "value": str(url)[:60], "ok": None,
+                                  "expected": None, "note": "주소 형식을 해석할 수 없음", "kind": "host"})
+            out["reasons"].append({"rule": "R1", "detail": f"안내 주소를 해석할 수 없음: {str(url)[:60]}",
+                                   "action": "자녀 확인 — 문서의 링크를 열지 말 것"})
+            out["url_unparseable"] = True
+        else:
+            ok = h in [norm_host(x) for x in issuer["official_hosts"]]
+            exp = sorted(set(norm_host(x) for x in issuer["official_hosts"]))
+            if ok and conf.get("info_url") != "high":
+                ok = None
+            out["checks"].append({"name": "안내 주소", "value": h, "ok": ok, "expected": exp,
+                                  "conf": conf.get("info_url"), "kind": "host"})
     else:
         out["checks"].append({"name": "안내 주소", "value": None, "ok": None, "expected": None,
                               "note": "문서에 없음"})
     if phone and phone.strip():
         out["checks"].append({"name": "상담 번호 형식", "value": phone,
-                              "ok": not mobile_hit, "expected": ["기관 대표번호"], "kind": "mobile"})
+                              "ok": (not mobile_hit) if conf.get("contact_phone") == "high" else None,
+                              "note": None if conf.get("contact_phone") == "high" else "읽기가 불확실함",
+                              "expected": ["기관 대표번호"], "kind": "mobile"})
 
     # R6 — 예금주 정합성. 공공기관 고지서의 가상계좌 예금주는 그 기관이어야 한다.
     # 은행명 대조는 하지 않는다(사기 계좌도 같은 은행에 만들 수 있다). 예금주는 다르다.
@@ -201,7 +262,7 @@ def verify(job):
             why = "읽기가 불확실함" if c.get("conf") == "low" else "등록된 공식 번호와 다름(부서 직통일 수 있음)"
             out["reasons"].append({"rule": "R1", "detail": f"{c['name']} {why}: '{c['value']}'",
                                    "action": "자녀 확인 — 기관 공식 대표번호로 사실 확인 권장"})
-    elif low_core:
+    elif low_core or missing or out.get("url_unparseable"):
         out["verdict"] = "review"
     else:
         out["verdict"] = "clear"
