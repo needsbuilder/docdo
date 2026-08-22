@@ -1,0 +1,11 @@
+# DocDo 에이전트 워커 — 항상 켜진 곳(Railway 등)에서 돈다. 폰의 승인을 받아 브라우저로 납부 포털을 조작한다.
+# Playwright 공식 이미지: Chromium + 시스템 의존성 포함. 버전은 package.json 의 playwright 와 맞춘다.
+FROM mcr.microsoft.com/playwright:v1.62.1-noble
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund --ignore-scripts
+COPY scripts/agent-worker.ts scripts/agent-brain.ts scripts/
+COPY tsconfig.json ./
+ENV NODE_ENV=production
+# 환경변수: AGENT_SECRET · UPSTAGE_API_KEY · DOCDO_URL (· AGENT_MODE · AGENT_ADAPTER)
+CMD ["npx", "tsx", "scripts/agent-worker.ts"]
