@@ -67,7 +67,7 @@ Studio 출력이 **문서 내부에서 무엇을 말하는지**와, 그것이 **
   "정상"·"진짜"·"안전"으로 읽으면 안 된다.
 - **공식 연락처를 그대로 복사한 사칭 문서는 이 방식으로 탐지하지 못한다.**
   대조할 값이 전부 진짜이기 때문이다. 이건 설계상의 한계이지 버그가 아니다.
-- **레지스트리는 5개 기관 시범 적용이다** — 건강보험공단 · 보건복지부 · 국민연금공단 · 한국전력공사 · 포항시.
+- **레지스트리는 8개 기관 시범 적용이다** — 건강보험공단 · 보건복지부 · 국민연금공단 · 한국전력공사 · 포항시 · 부산지방법원 · 서울아리수본부, 그리고 시연용 합성값인 부산상하수도사업본부(`demo: true`, 실제 공식 값이 아니다).
   전국 공공기관을 지원하지 않으며 **민간 사업자(통신·금융)는 대조 대상이 아니다.**
 - **등록된 기관명과 정확히 일치하지 않는 하위 조직 표기는 `clear` 로 올리지 않는다.**
   `국민연금공단 포항지사`(진짜)와 `국민건강보험공단가짜환급센터`(사칭)는 **구조만으로 구분할 수 없다.**
@@ -96,13 +96,15 @@ npm run dev                  # http://localhost:3000
 | `SUPABASE_URL` | 선택 | 없으면 `.data/` 파일 저장소로 자동 전환된다 |
 | `SUPABASE_ANON_KEY` | 선택 | 위와 같다 |
 | `AUTH_SECRET` | 필수 | 보호자 세션 서명 키(16자 이상 난수). 없으면 보호자 화면이 열리지 않는다 |
+| `ELEVENLABS_API_KEY` | 선택 | 어르신 음성. 없으면 기기 내장 TTS 로 폴백한다. **서버 전용** |
+| `AGENT_SECRET` | 에이전트 | 워커가 서버에 자신을 증명하는 비밀. 서버(Vercel)와 워커(Railway) 양쪽에 같은 값 |
 
 Supabase 없이도 전체 흐름이 로컬에서 돈다. 스키마는 `supabase/schema.sql`.
 
 ### 시험
 
 ```bash
-npm test    # 279개
+npm test    # 296개
 ```
 
 `tests/verify.test.ts` 는 공격·결손 입력 19종 회귀,
@@ -125,7 +127,7 @@ npm test    # 279개
 - **문서는 가구 단위로 격리된다.** 보호자는 자기 가구 것만 보고, 어르신 조회도 토큰의 가구와 맞아야 한다.
   남의 문서는 존재하지 않는 것(404)으로 답한다.
 - 어르신이 받는 응답에는 **문서 원문 필드가 없다**(문구·판정·공식 연락처만). IP당·전역 속도 제한.
-- **데모용 Supabase 는 RLS 비활성이며 운영 설정이 아니다.** 가구는 `demo` 하나로 고정돼 있다.
+- **데모용 Supabase 는 RLS 비활성이며 운영 설정이 아니다.** 보호자가 가입하면 가구(household)가 하나 생기고 문서는 그 가구로 격리된다.
   anon key 는 서버에서만 쓰이고 브라우저 번들에 들어가지 않는다.
 - **원본 사진은 판독이 끝나면 Upstage 에서 삭제한다.** 우리 DB 에 이미지를 저장하지 않는다.
 - **허용목록 밖 필드는 저장하지 않는다.** `account_number`·`recipient_name` 등은 폐기된다.
@@ -134,6 +136,30 @@ npm test    # 279개
   **두 필드만 바꿨을 때 규칙 결과가 달라지는지 보는 통제 실험**이다.
 
 ---
+
+## 승인 뒤 처리 — 브라우저 에이전트
+
+보호자가 카드의 **[납부 처리 승인]** 을 누르면 문서가 `queued` 가 되고, 별도 프로세스인 워커(`scripts/agent-worker.ts`)가 집어 실제 Chromium 으로 납부 포털을 조작한다.
+
+- **두뇌는 Solar Pro 4** (`scripts/agent-brain.ts`). 페이지의 접근성 트리(버튼·입력·링크 글자 + 참조 번호)를 읽고 `click / type / press / scroll / wait_human / done / abort` 중 **한 번에 하나**만 결정한다. 이미지를 받지 않는다 — 픽셀 computer-use 가 아니다.
+- **가드레일은 코드에 있다.** 비밀번호·인증서·본인인증 문구가 보이면 모델을 부르지 않고 보호자에게 넘긴다(`waiting`) · `password` 입력 금지 · 납부·결제·이체 버튼은 화면에 문서 금액이 보일 때만 · 허용 도메인 밖 차단 · 같은 화면 3회·25단계 초과 중단 · `done` 은 납부 클릭 후에만.
+- **보호자 차례**: 워커가 0.7초 간격으로 보내는 화면(JPEG, 세로 430×760)이 보호자 카드에 실시간으로 뜨고, 보호자는 그 화면을 **폰에서 직접 눌러**(터치 좌표·글자·Enter 중계) 인증을 마친 뒤 [이어서 하기]를 누른다. 원격 입력은 서버 큐를 지나지만 저장하지 않고 끝나면 비운다.
+- **승인 자체가 막히는 문서**: `mismatch` · 전자납부번호나 금액이 Extract `high` 가 아닌 것(버튼이 뜨지 않고 이유가 한 줄로 보인다).
+- **대상 포털**: 실제 인터넷지로는 비회원도 금융인증서가 필수라 조회조차 인증 뒤에 있다. 그래서 같은 흐름의 **시연용 포털 `/demo/giro`** (화면에 "시연용 · 실제 납부 아님" 상시 표기, 원장은 `lib/demoBills.ts`)에서 처리하고, [실제 인터넷지로에서]는 giro.or.kr 의 인증 벽에서 보호자에게 넘어오는 것까지 보여준다. 실기관 연동은 원장을 기관 API 로 바꾸는 일이지 에이전트를 바꾸는 일이 아니다.
+
+```bash
+# 워커 (서버와 같은 AGENT_SECRET · UPSTAGE_API_KEY 필요)
+DOCDO_URL=https://docdo.vercel.app npm run agent          # 헤드리스
+DOCDO_URL=https://docdo.vercel.app npm run agent:demo     # 브라우저 보임
+AGENT_MODE=script …                                       # 고정 절차 폴백(모델 없이)
+AGENT_ADAPTER=giro …                                      # 실제 인터넷지로 — 인증 벽에서 멈춘다
+```
+
+시연 환경에서는 워커가 Railway(`Dockerfile.agent`, Playwright 공식 이미지)에 상시 기동돼 있다.
+
+## 화면 디자인
+
+시각 언어는 팀 Figma 시안을 따른다(흰 앱바·`#3182f6`·연회색 바탕 위 무테 흰 카드·알약 칩·56px CTA). 다만 **서체(KoddiUD)와 어르신 글자 하한 20px 는 시안보다 우선**한다. 시안에 있어도 넣지 않은 것 — 하단 탭바·검색·알림 센터·OTP 인증·계좌번호 카드·"신뢰도 %"·"안전/정상" 문구 — 는 안전 원칙과 표현 규칙 때문이다. 어르신은 링크를 Safari 로 열어 **홈 화면에 추가**하면 그 아이콘이 연결된 상태로 바로 열린다(`/manifest.json?h=토큰`).
 
 ## 사용한 오픈소스
 
@@ -148,7 +174,14 @@ npm test    # 279개
 | [TypeScript](https://github.com/microsoft/TypeScript) | Apache-2.0 | 타입 |
 | [ESLint](https://github.com/eslint/eslint) | MIT | 정적 검사 |
 
-브라우저 내장 API 사용: `Web Speech API`(`speechSynthesis`) · `Canvas`(사진 압축) · `File`/`FormData`.
-외부 TTS 서비스를 쓰지 않으므로 음성에 네트워크가 필요 없다.
+| [Playwright](https://github.com/microsoft/playwright) | Apache-2.0 | 에이전트 워커의 브라우저(Chromium) |
+| [tsx](https://github.com/privatenumber/tsx) | MIT | 워커 실행 |
+| [Phosphor Icons](https://github.com/phosphor-icons/core) | MIT | 아이콘 — 패스 데이터만 `components/icons.tsx` 에 옮겨 담았다(npm 의존 없음) |
+| [KoddiUD 온고딕](https://www.koddi.or.kr/) | CC BY-SA 4.0 | 서체 (`public/fonts/`) — 한국장애인개발원 × 윤디자인 |
+
+팀 자산: 로고 마스코트(`public/brand/`)와 Figma 시안에서 내보낸 선 아이콘(`components/icons.tsx` 하단)은 팀 디자이너 작업물이다.
+
+브라우저 내장 API 사용: `Web Speech API`(`speechSynthesis`, 폴백 음성) · `Canvas`(사진 압축) · `File`/`FormData` · `Web App Manifest`.
+음성은 [ElevenLabs](https://elevenlabs.io) 상용 API(`/api/speech`, 서버 전용 키)를 먼저 쓰고, 키·크레딧·네트워크 문제가 있으면 기기 내장 TTS 로 같은 문장을 읽는다.
 
 Upstage Document AI (Parse · Classify · Information Extract) 는 상용 API 이며 오픈소스가 아니다.
