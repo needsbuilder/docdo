@@ -16,14 +16,13 @@ import AgentTrace from "@/components/AgentTrace";
 //   2단(항상) 해야 할 일 — 여기가 "전달"과 "처리"의 차이다
 //   3단(접힘) 근거 — 대조표·사유·복지·공식 연락처. 불일치일 때만 기본으로 펼친다.
 
-const RAIL: Record<string, string> = {
-  mismatch: "border-l-danger",
-  review: "border-l-warn",
-  clear: "border-l-ok",
-  failed: "border-l-line-soft",
-  no_extract: "border-l-line-soft",
+// 판정은 점 + 글자 칩. 카드 왼쪽 띠는 둥근 모서리와 싸워서 뺐다.
+const VERDICT_CHIP: Record<string, { dot: string; cls: string }> = {
+  mismatch: { dot: "bg-danger", cls: "bg-danger-tint text-danger-ink" },
+  review: { dot: "bg-warn", cls: "bg-warn-tint text-warn-ink" },
+  clear: { dot: "bg-ok", cls: "bg-ok-tint text-ok-ink" },
 };
-const VERDICT_TONE: Record<string, string> = { mismatch: "text-danger-ink", review: "text-warn-ink", clear: "text-ok-ink" };
+const VERDICT_DEFAULT = { dot: "bg-line", cls: "bg-well text-ink-mid" };
 const TODO_TONE = { danger: "text-danger-ink", warn: "text-warn-ink", normal: "text-ink" } as const;
 const TODO_DOT = { danger: "bg-danger", warn: "bg-warn", normal: "bg-brand" } as const;
 
@@ -72,14 +71,17 @@ export default function GuardianCard({
   const agentActive = d.action_status === "queued" || d.action_status === "running" || d.action_status === "waiting";
 
   return (
-    <article className={`rounded-card border border-line-soft border-l-[6px] bg-surface p-5 shadow-card ${RAIL[d.verdict ?? ""] ?? "border-l-line"} ${done ? "opacity-70" : ""}`}>
+    <article className={`rounded-card border border-line-soft bg-surface p-5 shadow-card ${done ? "opacity-70" : ""}`}>
       {/* 1단 */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {d.verdict && (
-            <p className={`text-g-meta font-bold ${VERDICT_TONE[d.verdict] ?? "text-ink-mid"}`}>{VERDICT_LABEL[d.verdict as Verdict]}</p>
+            <p className={`inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-g-meta font-bold ${(VERDICT_CHIP[d.verdict] ?? VERDICT_DEFAULT).cls}`}>
+              <span className={`size-2 rounded-full ${(VERDICT_CHIP[d.verdict] ?? VERDICT_DEFAULT).dot}`} />
+              {VERDICT_LABEL[d.verdict as Verdict]}
+            </p>
           )}
-          <h2 className="mt-0.5 text-g-title text-ink">{title}</h2>
+          <h2 className="mt-2 text-g-title text-ink">{title}</h2>
           {r && (issuer || amount) && (
             <p className="mt-0.5 text-g-body text-ink-mid">{[issuer, amount].filter(Boolean).join(" · ")}</p>
           )}
