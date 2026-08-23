@@ -43,6 +43,8 @@ export default function AgentTrace({
   const [openShot, setOpenShot] = useState<number | null>(null);
   const [showSteps, setShowSteps] = useState(false);
   const [text, setText] = useState("");
+  // 방금 누른 자리. 워커가 클릭을 반영한 화면이 오기까지 1~2초 걸리므로 즉시 점을 찍어 준다.
+  const [tapMark, setTapMark] = useState<{ x: number; y: number } | null>(null);
   const last = trace[trace.length - 1];
   const imgRef = useRef<HTMLImageElement>(null);
   const st = STATUS[status] ?? STATUS.queued;
@@ -50,12 +52,16 @@ export default function AgentTrace({
   const waiting = status === "waiting";
   const remote = waiting && wait?.mode === "remote";
 
-  function tap(e: React.MouseEvent<HTMLImageElement>) {
+  function tap(e: React.PointerEvent<HTMLElement>) {
     if (!remote || !onInput || !imgRef.current) return;
+    e.preventDefault();
     const r = imgRef.current.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width) * FRAME_W;
-    const y = ((e.clientY - r.top) / r.height) * FRAME_H;
-    onInput({ kind: "tap", x, y });
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    if (px < 0 || px > 1 || py < 0 || py > 1) return;
+    setTapMark({ x: px * 100, y: py * 100 });
+    setTimeout(() => setTapMark(null), 900);
+    onInput({ kind: "tap", x: px * FRAME_W, y: py * FRAME_H });
   }
 
   return (
@@ -76,16 +82,22 @@ export default function AgentTrace({
       )}
 
       {live && (status === "running" || waiting) && (
-        <figure className="relative mt-3 overflow-hidden rounded-inner border border-line-soft bg-surface">
+        <figure
+          // iOS Safari 는 cursor:pointer 가 없는 요소의 클릭을 무시한다. pointerup 으로 받고 pointer 커서를 준다.
+          onPointerUp={remote ? tap : undefined}
+          role={remote ? "button" : undefined}
+          aria-label={remote ? "화면을 눌러 직접 조작" : undefined}
+          className={`relative mt-3 overflow-hidden rounded-inner border border-line-soft bg-surface ${remote ? "cursor-pointer select-none [touch-action:manipulation]" : ""}`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imgRef}
-            src={live}
-            alt="독도가 지금 보고 있는 화면"
-            onClick={tap}
-            className={`block w-full ${remote ? "cursor-crosshair" : ""}`}
-            draggable={false}
-          />
+          <img ref={imgRef} src={live} alt="독도가 지금 보고 있는 화면" className="block w-full" draggable={false} />
+          {tapMark && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-warn bg-warn/30"
+              style={{ left: `${tapMark.x}%`, top: `${tapMark.y}%` }}
+            />
+          )}
           <figcaption
             className={`absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-g-meta font-bold text-surface ${remote ? "bg-warn" : "bg-danger"}`}
           >
