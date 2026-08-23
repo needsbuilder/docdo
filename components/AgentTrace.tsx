@@ -109,15 +109,12 @@ export default function AgentTrace({
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="입력할 글자 (처리 즉시 삭제)"
+              placeholder="글자를 쳐야 하면 여기에 (즉시 삭제)"
               autoComplete="off"
               className="min-h-tap min-w-0 flex-1 rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink"
             />
             <button type="submit" className="press min-h-tap rounded-control border-2 border-line bg-surface px-3 text-g-body font-bold text-ink active:bg-brand-tint">
               입력
-            </button>
-            <button type="button" onClick={() => onInput({ kind: "key", key: "Enter" })} className="press min-h-tap rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink active:bg-brand-tint">
-              Enter
             </button>
           </form>
         </div>
