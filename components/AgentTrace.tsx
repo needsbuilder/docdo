@@ -8,8 +8,6 @@ import { CheckCircle, WarningCircle, CaretRight } from "@/components/icons";
 // waiting 이면 보호자가 실시간 화면을 직접 터치·입력해 그 단계를 넘기고 [이어서 하기]를 누른다.
 // 이 경로로 들어온 입력은 서버 큐를 거쳐 워커가 0.5초 안에 꺼내 쓰고 지운다. 끝나면 큐를 비운다. 보호자 응답에도 싣지 않는다.
 
-const FRAME_W = 900;
-const FRAME_H = 640;
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   queued: { label: "대기 중", cls: "bg-well text-ink-mid" },
@@ -61,7 +59,9 @@ export default function AgentTrace({
     if (px < 0 || px > 1 || py < 0 || py > 1) return;
     setTapMark({ x: px * 100, y: py * 100 });
     setTimeout(() => setTapMark(null), 900);
-    onInput({ kind: "tap", x: px * FRAME_W, y: py * FRAME_H });
+    // 워커 브라우저 좌표 = JPEG 실제 크기(deviceScaleFactor 1). 프레임 크기를 여기 박아 두지 않는다 — 워커가 바뀌어도 맞는다.
+    const img = imgRef.current;
+    onInput({ kind: "tap", x: px * img.naturalWidth, y: py * img.naturalHeight });
   }
 
   return (
@@ -99,7 +99,7 @@ export default function AgentTrace({
             />
           )}
           <figcaption
-            className={`absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-g-meta font-bold text-surface ${remote ? "bg-warn-ink" : "bg-danger-ink"}`}
+            className={`absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-g-meta font-bold text-surface ${remote ? "bg-warn-ink" : "bg-danger-ink"}`}
           >
             <span className="size-2 animate-pulse rounded-full bg-surface" />
             {remote ? "화면을 눌러 직접 조작" : "실시간"}

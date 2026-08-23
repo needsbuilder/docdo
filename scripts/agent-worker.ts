@@ -45,6 +45,17 @@ const IRREVERSIBLE = /납부|결제|이체|송금|승인/;
 const FORBIDDEN = /자동이체|회원가입|탈퇴|해지|대출|카드\s*발급|예약납부|분할|환급\s*신청|송금\s*등록/;
 // 사람 차례 신호. 보이면 모델이 뭐라 하든 멈춘다.
 const HUMAN = /비밀번호|인증서|본인인증|보안\s*키패드|OTP|공동인증|금융인증|간편인증/;
+
+/** 모델의 abort 사유를 보호자용 고정 문장으로. 어떤 경우에도 "납부하지 않았다"가 드러나야 한다. */
+function abortSummary(reason: string): string {
+  const r = reason.replace(/\s+/g, " ").trim();
+  if (/찾을 수 없|찾지 못|없습니다|not found|존재하지/i.test(r)) return "포털에서 이 전자납부번호의 고지 내역을 찾지 못해 납부하지 않았습니다";
+  if (/금액/.test(r)) return "포털의 금액이 문서 금액과 달라 납부하지 않았습니다";
+  if (/기관|발급/.test(r)) return "포털의 기관명이 문서와 달라 납부하지 않았습니다";
+  if (/무관|다른 사이트|막다른/.test(r)) return "납부와 무관한 화면이라 진행하지 않았습니다";
+  const short = r.replace(/(으)?므로 진행한다\.?$|진행한다\.?$/, "").slice(0, 80);
+  return `납부하지 않고 멈췄습니다${short ? ` — ${short}` : ""}`;
+}
 const HEADED = process.env.AGENT_HEADED === "1";
 const POLL_MS = 3000;
 const LIVE_MS = 700;
@@ -78,8 +89,13 @@ async function docApi(doc: Doc, body: Record<string, unknown>) {
   return r;
 }
 
+// 브라우저 크기. 보호자 폰 카드(약 270px 폭)에 실시간으로 송출되므로 **세로형**이다 — 가로 900 이면 1/3 로 줄어 글자가 안 읽혔다.
+// 보호자 터치 좌표는 이 프레임 기준이 아니라 JPEG 의 실제 크기(naturalWidth/Height)로 환산된다(AgentTrace).
+const VIEW_W = 430;
+const VIEW_H = 760;
+
 async function shot(page: Page, quality = 55): Promise<string> {
-  const buf = await page.screenshot({ type: "jpeg", quality, clip: { x: 0, y: 0, width: 900, height: 640 } });
+  const buf = await page.screenshot({ type: "jpeg", quality, clip: { x: 0, y: 0, width: VIEW_W, height: VIEW_H } });
   return `data:image/jpeg;base64,${buf.toString("base64")}`;
 }
 
@@ -219,7 +235,11 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
     const ref = "ref" in action ? snap.refs.find((r) => r.ref === action.ref) : undefined;
     const why = "why" in action ? action.why : "";
 
-    if (action.kind === "abort") return finish("blocked", `에이전트가 멈췄습니다: ${action.reason}`, { reason: "abort" });
+    if (action.kind === "abort") {
+      // 모델이 쓴 사유는 과정 로그에만. 보호자에게 보이는 한 줄은 우리가 고른 문장이다 — "…진행한다"로 끝나는 문장이 그대로 뜬 적이 있다.
+      await step("에이전트가 멈추기로 판단했습니다", action.reason.slice(0, 300));
+      return finish("blocked", abortSummary(action.reason), { reason: "abort" });
+    }
     if (action.kind === "wait_human") {
       await waitForHuman(page, doc, action.reason, action.hint);
       skipHumanOnce = true;
@@ -288,7 +308,7 @@ async function run(doc: Doc) {
   await step(`${label} 처리를 시작합니다`, `전자납부번호 ${epn} · 문서 금액 ${amount.toLocaleString("ko-KR")}원`);
 
   const browser = await chromium.launch({ headless: !HEADED, slowMo: Number(process.env.AGENT_SLOWMO ?? (HEADED ? 350 : 0)) });
-  const page = await browser.newPage({ viewport: { width: 900, height: 640 }, locale: "ko-KR" });
+  const page = await browser.newPage({ viewport: { width: VIEW_W, height: VIEW_H }, locale: "ko-KR" });
   const stopLive = startLive(page, doc);
   try {
     if (MODE === "llm") {
