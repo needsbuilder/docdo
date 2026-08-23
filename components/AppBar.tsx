@@ -1,65 +1,82 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ReactNode } from "react";
+import { ChevronLeft } from "@/components/icons";
 
-// 고지서 머리띠. 관공서 문서는 상단 남색 띠로 시작한다 — 이 앱의 모든 화면도 그렇게 시작한다.
-// 띠는 화면 폭 전체를 쓰고(밖으로 bleed), 내용은 본문 폭에 맞춘다.
+// 시안(Figma "최종")의 Top app bar: 흰 바탕 · 높이 64 · 왼쪽 48×48 뒤로가기 · 가운데 제목 · 오른쪽 액션.
+// 제목이 없으면 브랜드(로고 마크 + 워드마크)를 왼쪽에 둔다 — 온보딩·촬영 화면.
+// 경고(mismatch)만 예외로 띠 전체가 빨강이다. 색·위치·글자가 같은 말을 해야 한다.
 
-export function Wordmark({ size = "md", tone = "light" }: { size?: "md" | "lg"; tone?: "light" | "dark" }) {
-  const box = size === "lg" ? 36 : 28;
-  const cls = size === "lg" ? "text-lead" : "text-g-title";
-  const ink = tone === "light" ? "text-surface" : "text-ink";
-  const sub = tone === "light" ? "text-surface/70" : "text-ink-soft";
+export function Wordmark({ size = "md", tone = "dark" }: { size?: "md" | "lg"; tone?: "light" | "dark" }) {
+  const mark = size === "lg" ? 34 : 28;
+  const word = size === "lg" ? 22 : 18;
   return (
     <span className="inline-flex items-center gap-2.5">
-      <svg viewBox="0 0 32 32" width={box} height={box} aria-hidden="true" className="shrink-0">
-        <rect width="32" height="32" rx="7" fill={tone === "light" ? "#fff" : "var(--color-brand)"} />
-        <path
-          d="M7 10.5h18v12H7z M7 11l9 6.5L25 11"
-          fill="none"
-          stroke={tone === "light" ? "var(--color-band)" : "#fff"}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span className={`${cls} leading-none ${ink}`}>독도</span>
-      <span className={`text-g-meta leading-none ${sub}`}>DocDo</span>
+      {/* 시안의 로고 마크(주황 문서). 워드마크 "docdo" 는 흰 띠 위에서만 쓴다 — 빨간 띠엔 글자로. */}
+      <Image src="/brand/logo-mark.png" alt="" width={mark} height={Math.round((mark * 2182) / 1874)} priority className="shrink-0" />
+      {tone === "dark" ? (
+        <Image src="/brand/wordmark.png" alt="독도 DocDo" width={Math.round((word * 3902) / 950)} height={word} priority />
+      ) : (
+        <span className="text-g-title leading-none text-surface">독도 DocDo</span>
+      )}
     </span>
   );
 }
 
 export default function AppBar({
+  title,
+  back,
+  onBack,
   right,
   size = "md",
-  home = true,
   tone = "band",
   children,
 }: {
+  /** 가운데 제목. 없으면 브랜드를 왼쪽에 둔다. */
+  title?: string;
+  /** 뒤로가기 링크. onBack 이 있으면 버튼으로. */
+  back?: string;
+  onBack?: () => void;
   right?: ReactNode;
   size?: "md" | "lg";
-  home?: boolean;
-  /** band: 남색 머리띠. danger: 경고 화면 — 띠 전체가 빨강. */
+  /** band: 흰 앱바. danger: 경고 화면 — 띠 전체가 빨강. */
   tone?: "band" | "danger";
-  /** 띠 아래에 붙는 내용(제목·요약). 띠와 같은 색 위에 놓인다. */
+  /** 띠 아래에 붙는 내용(경고 제목 등). 띠와 같은 색 위에 놓인다. */
   children?: ReactNode;
 }) {
-  const h = size === "lg" ? "min-h-tap-elder" : "min-h-[3.25rem]";
-  const bg = tone === "danger" ? "bg-danger" : "bg-band";
-  const mark = (
-    <Wordmark size={size} tone="light" />
-  );
+  const danger = tone === "danger";
+  const h = size === "lg" ? "min-h-tap-elder" : "min-h-16";
+  const iconBtn = `on-brand inline-flex size-12 shrink-0 items-center justify-center rounded-inner ${danger ? "text-surface active:bg-surface/20" : "text-ink active:bg-well"}`;
+  const backEl = onBack ? (
+    <button type="button" onClick={onBack} aria-label="뒤로" className={iconBtn}>
+      <ChevronLeft size={28} />
+    </button>
+  ) : back ? (
+    <Link href={back} aria-label="뒤로" className={iconBtn}>
+      <ChevronLeft size={28} />
+    </Link>
+  ) : null;
+
   return (
-    <header className={`-mx-5 ${bg} px-5 text-surface`}>
-      <div className={`flex ${h} items-center justify-between gap-3`}>
-        {home ? (
-          <Link href="/" className={`on-brand -ml-1 inline-flex ${h} items-center rounded-inner px-1`}>
-            {mark}
-          </Link>
+    <header className={`-mx-6 px-3 ${danger ? "bg-danger text-surface" : "bg-band text-ink"}`}>
+      <div className={`flex ${h} items-center gap-1`}>
+        {title ? (
+          <>
+            {backEl ?? <span className="size-12 shrink-0" />}
+            <h1 className={`min-w-0 flex-1 truncate text-center ${size === "lg" ? "text-lead" : "text-g-title"}`}>{title}</h1>
+            <div className="flex min-w-12 shrink-0 items-center justify-end">{right}</div>
+          </>
         ) : (
-          mark
+          <>
+            {backEl}
+            <div className={`flex min-w-0 flex-1 items-center ${backEl ? "" : "px-3"}`}>
+              <Wordmark size={size} tone={danger ? "light" : "dark"} />
+            </div>
+            {right}
+          </>
         )}
-        {right}
       </div>
-      {children}
+      {children && <div className="px-3">{children}</div>}
     </header>
   );
 }

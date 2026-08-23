@@ -7,6 +7,7 @@
    판독성이 검증된 UD 서체다. 기기 기본 서체(Apple SD Gothic Neo)는 숫자 폭이
    0.357~0.630em 으로 흔들려 48px 금액에서 자릿수가 13px 까지 어긋났다 —
    tnum 피처가 없어 CSS 로는 고칠 수 없는 문제였다.
+   (Figma 시안은 Noto Sans KR 이지만 위 근거로 서체는 유지한다. 색·형태만 시안을 따른다.)
    ───────────────────────────────────────────────────────────── */
 @font-face {
   font-family: "KoddiUD";
@@ -37,37 +38,44 @@
   --font-sans: "KoddiUD", "KoddiUD Fallback", sans-serif;
 
   /* ── 색 ────────────────────────────────────────────────────
-     괄호는 paper(#FAF8F4) 위 대비비. 본문 기준선은 AA 4.5:1 이 아니라 AAA 7:1. */
-  --color-paper: #ffffff; /* 페이지 배경. 고지서 용지 = 흰 종이. 카드는 border 로 구분한다 */
+     Figma 시안(2026-08-23, 팀 디자인 파일 "최종") 의 실측값이다.
+     바탕은 연회색, 카드는 테두리 없는 흰색 — 면 차이만으로 층을 만든다.
+     괄호는 흰 카드 위 대비비. 시안의 회색 글자(#6b7684)는 4.6:1 로 본문 하한이라 meta 에만 쓴다. */
+  --color-paper: #f9fafb; /* 페이지 바탕 */
   --color-surface: #ffffff; /* 카드 */
-  --color-well: #f2f5f9; /* 표 머리글·보조 영역. 남색 밴드와 같은 색상환의 9% 틴트 */
-  --color-ink: #10151c; /* 본문·핵심값 (17.27) */
-  --color-ink-mid: #333b45; /* 부제 (10.69) */
-  --color-ink-soft: #4a5461; /* 보조 최저 (7.25 AAA) */
-  --color-line: #6e7783; /* 경계선 (4.28, 비텍스트 3:1 통과) */
-  --color-line-soft: #d6d2ca; /* 내부 구분선 전용. 경계에 쓰지 않는다 */
+  --color-well: #f2f4f6; /* 보조 면 · 보조 버튼 · 입력 바탕 */
+  --color-ink: #191f28; /* 본문·핵심값 (16.2) */
+  --color-ink-mid: #333d4b; /* 부제 (10.4) */
+  --color-ink-soft: #6b7684; /* 메타 (4.6 AA) */
+  --color-line: #d1d6db; /* 입력 테두리 */
+  --color-line-soft: #e5e8eb; /* 구분선 */
 
-  /* 브랜드 — 값은 유지(흰 글자 얹으면 8.28), 형제와 이름을 준다 */
-  --color-brand: #1a4f8b;
-  --color-brand-deep: #123a69; /* pressed (10.79) */
-  --color-brand-tint: #e7eff8; /* 이 위 brand 글자 7.14 */
-  --color-band: #123a69; /* 화면 상단 밴드 — 고지서 머리띠. 흰 글자 10.79 */
+  /* 브랜드 — 시안의 파랑. 흰 글자는 18px 이상 Bold 에서만(3.6:1 = 큰 글씨 AA). 어르신 버튼 라벨은 28px 라 충족. */
+  --color-brand: #3182f6;
+  --color-brand-deep: #1b64da; /* pressed · 틴트 위 글자 (5.0) */
+  --color-brand-tint: #eaf4ff; /* 아이콘 박스 · 선택 면 */
+  --color-band: #ffffff; /* 앱바 — 시안은 흰 바탕 위 가운데 제목 */
 
-  /* 시맨틱 3종 — 안전 신호다. "액센트 1개·채도 80% 미만" 규칙을 적용하지 않는다. */
-  --color-danger: #b3241a; /* 면·테두리. 흰 글자 6.60 = 큰 글씨 AAA */
-  --color-danger-ink: #8c1c14; /* 글자 (8.64) tint 위 7.88 */
-  --color-danger-tint: #fceae7;
-  --color-warn: #a8710a; /* 테두리 (3.93) */
-  --color-warn-ink: #6e4800; /* 글자 (7.64) tint 위 7.24 */
-  --color-warn-tint: #fbf1de;
-  --color-ok: #14663b;
-  --color-ok-ink: #0f5531; /* 글자 (8.37) tint 위 7.72 */
-  --color-ok-tint: #e6f2ea;
+  /* 강조(AI 요약 카드) — 시안의 연보라. 글자는 ink 로만 얹는다. */
+  --color-ai: #7c5cfc;
+  --color-ai-tint: #f2eeff;
+
+  /* 시맨틱 3종 — 안전 신호. 면·테두리는 시안 값, 글자는 대비 7:1 근처로 내린 형제색. */
+  --color-danger: #f04452;
+  --color-danger-ink: #c8303c; /* 틴트 위 5.2 */
+  --color-danger-tint: #fff0f1;
+  --color-warn: #ffb020;
+  --color-warn-ink: #8a5a00; /* 틴트 위 6.1 */
+  --color-warn-tint: #fff6e5;
+  --color-ok: #00a878;
+  --color-ok-ink: #067a56; /* 틴트 위 5.4 */
+  --color-ok-tint: #e8faf4;
 
   /* ── 타이포 ────────────────────────────────────────────────
      한글 규칙: 트래킹 가동범위는 −0.015em ~ +0.01em 뿐이다. 라틴의 −0.04em 은
      존재하지 않는 예산 — 글자 사이 흰공간이 자소 사이보다 좁아지면 "국민"이 한 덩어리가 된다.
-     행간은 반대로 늘린다. 콘텐츠 영역이 1.22em 이라 leading-none 은 받침이 잘린다. */
+     행간은 반대로 늘린다. 콘텐츠 영역이 1.22em 이라 leading-none 은 받침이 잘린다.
+     어르신 크기는 시안(22~30px)보다 크다 — 저시력 하한 20px 는 양보하지 않는다. */
   --text-hero: 3.5rem; /* 56px 결과 화면 단일 최대값 */
   --text-hero--line-height: 1.15;
   --text-hero--letter-spacing: -0.01em;
@@ -77,6 +85,11 @@
   --text-value--line-height: 1.2;
   --text-value--letter-spacing: -0.01em;
   --text-value--font-weight: 700;
+
+  --text-title: 2.125rem; /* 34px 어르신 화면 헤드라인 (시안 34/44) */
+  --text-title--line-height: 1.3;
+  --text-title--letter-spacing: -0.01em;
+  --text-title--font-weight: 700;
 
   --text-lead: 1.75rem; /* 28px 어르신 안내문·버튼 라벨 */
   --text-lead--line-height: 1.45;
@@ -89,31 +102,38 @@
   --text-note--line-height: 1.6;
   --text-note--letter-spacing: 0.01em;
 
-  --text-g-title: 1.25rem; /* 20px 자녀 카드 제목 */
-  --text-g-title--line-height: 1.4;
+  --text-g-h1: 1.875rem; /* 30px 자녀 화면 헤드라인 (시안 30/41) */
+  --text-g-h1--line-height: 1.35;
+  --text-g-h1--letter-spacing: -0.01em;
+  --text-g-h1--font-weight: 700;
+
+  --text-g-title: 1.125rem; /* 18px 자녀 카드 제목·앱바 제목 (시안 18/27) */
+  --text-g-title--line-height: 1.45;
   --text-g-title--letter-spacing: -0.005em;
   --text-g-title--font-weight: 700;
 
-  --text-g-body: 1.0625rem; /* 17px 자녀 본문 하한 (iOS 자동확대 회피) */
-  --text-g-body--line-height: 1.7;
+  --text-g-body: 1rem; /* 16px 자녀 본문 (iOS 입력 자동확대 회피 하한) */
+  --text-g-body--line-height: 1.65;
 
-  --text-g-meta: 0.9375rem; /* 15px 메타 전용. 검사 결과엔 쓰지 않는다 */
-  --text-g-meta--line-height: 1.6;
+  --text-g-meta: 0.875rem; /* 14px 메타·칩 전용. 검사 결과엔 쓰지 않는다 */
+  --text-g-meta--line-height: 1.55;
 
   /* ── 터치 ──────────────────────────────────────────────── */
   --spacing-tap: 3rem; /* 48px 자녀 최소 (SC 2.5.5 AAA) */
+  --spacing-cta: 3.5rem; /* 56px 시안 Primary 버튼 */
   --spacing-tap-elder: 4rem; /* 64px 어르신 최소 */
 
   /* ── 표면 ──────────────────────────────────────────────────
-     동심원 규칙: 카드 20px, 내부 패딩 10px → 내부 요소 10px. 원형 버튼은 쓰지 않는다(촬영도 카드 반경). */
+     시안: 카드 20~24, 버튼 17~18, 아이콘 박스 15, 칩은 알약. */
   --radius-card: 20px;
-  --radius-control: 14px;
-  --radius-inner: 10px;
-  --radius-chip: 8px;
+  --radius-sheet: 24px;
+  --radius-control: 18px;
+  --radius-inner: 15px;
+  --radius-chip: 999px;
 
-  /* 그림자는 배경 색조로 틴트한다. 순수 검정 금지. 경계의 유일한 수단으로 쓰지 않는다 — 항상 border 동반. */
-  --shadow-card: 0 1px 2px rgb(20 35 60 / 0.06), 0 8px 20px -12px rgb(20 35 60 / 0.18);
-  --shadow-raise: 0 2px 4px rgb(20 35 60 / 0.08), 0 16px 32px -16px rgb(20 35 60 / 0.22);
+  /* 시안은 카드에 그림자가 없다. 바탕(#f9fafb)과 흰 카드의 면 차이가 경계다. */
+  --shadow-card: 0 1px 2px rgb(25 31 40 / 0.04);
+  --shadow-raise: 0 8px 28px rgb(25 31 40 / 0.1);
 
   /* ── 모션 ── 화면당 1개 이하 · 120~200ms · transform/opacity 만 · 스태거 금지 */
   --ease-out-soft: cubic-bezier(0.23, 1, 0.32, 1);
@@ -152,7 +172,7 @@ html {
   /* 눌렀다는 신호를 지우지 않는다. */
   button,
   a {
-    -webkit-tap-highlight-color: rgb(26 79 139 / 0.18);
+    -webkit-tap-highlight-color: rgb(49 130 246 / 0.18);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -167,8 +187,8 @@ html {
   }
   @media (prefers-contrast: more) {
     :root {
-      --color-line: #3a424d;
-      --color-ink-soft: #2a323c;
+      --color-line: #8b95a1;
+      --color-ink-soft: #4e5968;
     }
   }
 }

@@ -9,7 +9,7 @@ export default function CheckList({ result }: { result: VerifyResult }) {
   const checks = result.checks ?? [];
   return (
     <section>
-      <header className="flex items-baseline justify-between gap-3 border-b-2 border-ink pb-2">
+      <header className="flex items-baseline justify-between gap-3 border-b border-line-soft pb-2">
         <h3 className="text-g-body font-bold text-ink">공식 정보 대조</h3>
         <p className="text-g-title tabular-nums text-ink">
           {result.checksPassed ?? 0}

@@ -7,7 +7,7 @@ import { pollDocument, PollTimeout, type DocView } from "@/lib/poll";
 import { readElderToken, clearElderToken } from "@/lib/elderToken";
 import ElderResult from "@/components/ElderResult";
 import AppBar from "@/components/AppBar";
-import { Camera, Envelope, Scan } from "@/components/icons";
+import { Envelope, CameraLine, ImageLine, AlertTriangle } from "@/components/icons";
 
 type Stage = "idle" | "uploading" | "waiting" | "done" | "error";
 
@@ -21,6 +21,9 @@ const WAIT_TEXT = [
 
 // 관측된 처리시간 4.1~26.2초(n=12). P95 가 아니다 — 진행 바는 이 범위를 따라가되 끝까지 차지 않는다.
 const OBSERVED_MAX_S = 26;
+
+// 시안(흐린 사진 · 다시 찍기)의 번호 팁 3개. 촬영 성공률에 닿는 사실 안내이지 금전·폐기 지시가 아니다.
+const RETAKE_TIPS = ["밝은 곳에서 찍어 주세요", "종이의 네 모서리가 다 보이게요", "찍기 전에 1초만 멈춰 주세요"];
 
 function waitLine(seconds: number): string {
   if (seconds > 45) return WAIT_TEXT[3];
@@ -37,6 +40,8 @@ export default function Elder() {
   // 보호자가 준 링크의 토큰. null 이면 아직 링크로 연 적이 없다. undefined 는 확인 전.
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+  // 사진첩에서 고르기 — capture 속성이 없는 두 번째 입력. 자녀가 보내 준 사진도 올릴 수 있다.
+  const pickerRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   // 사진을 고를 때마다 올라간다. 늦게 끝난 압축이 최신 선택을 덮어쓰지 못하게.
   const pickRef = useRef(0);
@@ -142,10 +147,10 @@ export default function Elder() {
     await submit(file, pick, token);
   }
 
-  function onShoot() {
+  function onShoot(ref: React.RefObject<HTMLInputElement | null>) {
     // iOS 는 첫 발화가 사용자 제스처 안에서 일어나야 한다.
     primeSpeech();
-    inputRef.current?.click();
+    ref.current?.click();
   }
 
   function reset() {
@@ -166,12 +171,12 @@ export default function Elder() {
   // 링크 없이 열었다. 계정이 없으니 할 수 있는 게 없다 — 보호자에게 받아야 한다.
   if (token === null) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-10">
-        <AppBar size="lg" />
-        <span className="mt-8 inline-flex size-16 items-center justify-center rounded-inner bg-brand-tint text-brand">
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-10">
+        <AppBar size="lg" back="/" />
+        <span className="mt-8 inline-flex size-[4.5rem] items-center justify-center rounded-inner bg-brand-tint text-brand-deep">
           <Envelope size={40} />
         </span>
-        <h1 className="mt-5 text-balance text-value text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
+        <h1 className="mt-5 text-balance text-title text-ink">자녀분이 보낸 링크로 열어 주세요</h1>
         <p className="mt-4 text-body text-ink-mid">
           이 화면은 자녀분 계정과 연결돼야 합니다. 자녀분께 &ldquo;독도 링크&rdquo;를 보내 달라고 말씀해 주세요.
         </p>
@@ -186,58 +191,96 @@ export default function Elder() {
   const progress = Math.min(0.92, seconds / OBSERVED_MAX_S);
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-10">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-10">
       <AppBar size="lg" />
 
       {stage === "idle" && (
         <>
-          <h1 className="mt-8 text-balance text-value text-ink">우편물을 사진으로 찍어 주세요</h1>
+          <h1 className="mt-8 text-balance text-title text-ink">우편물을 사진으로 찍어 주세요</h1>
           <p className="mt-3 text-body text-ink-mid">종이 전체가 한 장에 다 들어오게요.</p>
 
-          {/* 촬영 가이드. 어떻게 찍는지를 화면이 보여준다 — 설명 문장보다 빠르다. */}
-          <div aria-hidden="true" className="mt-6 flex aspect-[4/3] w-full items-center justify-center rounded-card bg-well">
-            <div className="relative h-[82%] w-[62%] overflow-hidden rounded-inner border-2 border-dashed border-brand bg-surface">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/samples/nhis-top.jpg" alt="" className="block h-full w-full object-cover object-left-top opacity-90" />
-              <span className="absolute right-1 top-1 rounded-inner bg-surface p-1 text-brand">
-                <Scan size={26} />
+          {/* 시안(문서 추가 시트)의 카드 2장: 아이콘 박스 + 제목 + 설명 + 쉐브론. 글자는 어르신 크기로. */}
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => onShoot(inputRef)}
+              className="press flex min-h-[6rem] w-full items-center gap-4 rounded-card bg-surface px-4 py-4 text-left shadow-card active:bg-brand-tint"
+            >
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-inner bg-brand text-surface">
+                <CameraLine size={40} />
               </span>
-            </div>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-x-2">
+                  <span className="text-body font-bold text-ink">우편물 찍기</span>
+                  <span className="rounded-chip bg-brand-tint px-2.5 py-0.5 text-g-meta font-bold text-brand-deep">추천</span>
+                </span>
+                <span className="block text-note text-ink-soft">고지서·안내문을 바로 찍어요</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onShoot(pickerRef)}
+              className="press flex min-h-[6rem] w-full items-center gap-4 rounded-card bg-surface px-4 py-4 text-left shadow-card active:bg-brand-tint"
+            >
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-inner bg-well text-ink-mid">
+                <ImageLine size={34} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-body font-bold text-ink">사진첩에서 고르기</span>
+                <span className="block text-note text-ink-soft">받아 둔 우편물 사진을 골라요</span>
+              </span>
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={onShoot}
-            className="press on-brand mt-6 flex min-h-[5.5rem] w-full items-center justify-center gap-4 rounded-card bg-brand px-6 text-surface shadow-raise active:bg-brand-deep"
-          >
-            <Camera size={44} />
-            <span className="text-value">사진 찍기</span>
-          </button>
           <input ref={inputRef} type="file" accept="image/*" capture="environment" onChange={onPick} className="hidden" />
-          <p className="mt-4 text-note text-ink-soft">찍은 사진은 자녀분 화면에도 함께 올라갑니다.</p>
+          <input ref={pickerRef} type="file" accept="image/*" onChange={onPick} className="hidden" />
+          <p className="mt-5 text-note text-ink-soft">찍은 사진은 자녀분 화면에도 함께 올라갑니다.</p>
         </>
       )}
 
       {(stage === "uploading" || stage === "waiting") && (
         <div className="mt-8 flex w-full flex-col gap-5" aria-live="polite">
-          <h1 className="text-value text-ink">{stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}</h1>
+          <h1 className="text-title text-ink">{stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}</h1>
           {preview && (
             // 찍은 사진 그대로. 결과와 무관하게 "이 종이"를 처리 중이라는 신호다.
-            <div className="w-full overflow-hidden rounded-card bg-well">
+            <div className="w-full overflow-hidden rounded-sheet bg-well">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={preview} alt="방금 찍은 우편물" className="block max-h-[52dvh] w-full object-contain" />
             </div>
           )}
-          <div className="h-3 w-full overflow-hidden rounded-chip bg-well">
-            <div className="h-full bg-brand transition-[width] duration-1000 ease-linear" style={{ width: `${Math.round(progress * 100)}%` }} />
+          <div className="h-2.5 w-full overflow-hidden rounded-chip bg-line-soft">
+            <div className="h-full rounded-chip bg-brand transition-[width] duration-1000 ease-linear" style={{ width: `${Math.round(progress * 100)}%` }} />
           </div>
           <p className="text-note text-ink-soft">보통 30초 안에 끝나요. 화면을 닫지 말고 기다려 주세요.</p>
         </div>
       )}
 
       {stage === "error" && (
-        <div className="mt-8 flex flex-col gap-6" aria-live="assertive">
-          <h1 className="text-value text-ink">{errorText}</h1>
+        <div className="mt-6 flex flex-col gap-5" aria-live="assertive">
+          {/* 시안의 일러스트: 흐린 종이 + 경고 삼각형. 글을 읽기 힘든 어르신에게 "사진이 안 읽혔다"를 그림으로. */}
+          <div aria-hidden="true" className="relative h-52 w-full overflow-hidden rounded-[28px] bg-well">
+            <div className="absolute left-[22%] top-[14%] flex h-[90%] w-[56%] rotate-[4deg] flex-col gap-[8%] rounded-[14px] bg-[#f3ede2]/70 p-[6%]">
+              <span className="h-[6%] w-[70%] rounded-full bg-[#c9bba7]/45" />
+              <span className="h-[6%] w-[85%] rounded-full bg-[#c9bba7]/45" />
+              <span className="h-[6%] w-[65%] rounded-full bg-[#c9bba7]/45" />
+              <span className="h-[6%] w-[80%] rounded-full bg-[#c9bba7]/45" />
+              <span className="h-[6%] w-[60%] rounded-full bg-[#c9bba7]/45" />
+            </div>
+            <span className="absolute bottom-[12%] right-[10%] -rotate-[11deg] text-danger">
+              <AlertTriangle size={56} />
+            </span>
+          </div>
+          <div>
+            <h1 className="text-title text-ink">{errorText}</h1>
+            <p className="mt-2 text-body text-ink-mid">아래처럼 다시 찍어 주세요.</p>
+          </div>
+          <ol className="flex flex-col gap-2.5">
+            {RETAKE_TIPS.map((tip, i) => (
+              <li key={tip} className="flex min-h-14 items-center gap-3 rounded-card bg-surface px-3 py-2 shadow-card">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-tint text-body font-bold text-brand-deep">{i + 1}</span>
+                <span className="text-note text-ink-mid">{tip}</span>
+              </li>
+            ))}
+          </ol>
           <button
             type="button"
             onClick={reset}

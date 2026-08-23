@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { GuardianDoc } from "@/lib/dto";
 import GuardianCard from "@/components/GuardianCard";
 import AppBar from "@/components/AppBar";
-import { ArrowSquareOut, Tray, Check } from "@/components/icons";
+import { Tray, Check, Share } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
 // 보호자는 이메일+비밀번호로 가입한다. 가입하면 가구 하나와 어르신 초대 링크가 생긴다.
@@ -30,6 +30,8 @@ export default function Guardian() {
   const [copied, setCopied] = useState(false);
   const [docs, setDocs] = useState<GuardianDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // 시안(문서함)의 상태 칩. 클라이언트 필터 — 목록 API 는 그대로.
+  const [filter, setFilter] = useState<"all" | "attention" | "done">("all");
   const inFlight = useRef<Set<string>>(new Set());
   const listInFlight = useRef(false);
 
@@ -270,14 +272,13 @@ export default function Guardian() {
 
   const Header = (
     <AppBar
+      back="/"
+      title={auth === "ok" ? "부모님 우편물" : mode === "signup" ? "가입하기" : "로그인"}
       right={
         me ? (
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="min-w-0 truncate text-g-meta text-surface/75">{me.email}</span>
-            <button type="button" onClick={logout} className="on-brand min-h-tap shrink-0 rounded-control px-3 text-g-meta font-bold text-surface">
-              로그아웃
-            </button>
-          </div>
+          <button type="button" onClick={logout} className="min-h-tap shrink-0 rounded-inner px-2 text-g-meta font-bold text-ink-soft active:bg-well">
+            로그아웃
+          </button>
         ) : undefined
       }
     />
@@ -285,7 +286,7 @@ export default function Guardian() {
 
   if (auth === "checking") {
     return (
-      <main className="mx-auto max-w-2xl px-5 pb-8">
+      <main className="mx-auto max-w-2xl px-6 pb-8">
         {Header}
         <p className="mt-6 text-g-body text-ink-soft">확인 중…</p>
       </main>
@@ -294,7 +295,7 @@ export default function Guardian() {
 
   if (auth === "unconfigured") {
     return (
-      <main className="mx-auto max-w-2xl px-5 pb-8">
+      <main className="mx-auto max-w-2xl px-6 pb-8">
         {Header}
         <p className="mt-6 text-g-body text-ink-mid">
           서버에 <code>AUTH_SECRET</code> 이 설정되지 않았습니다.
@@ -305,19 +306,20 @@ export default function Guardian() {
 
   if (auth === "anon") {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pb-8">
+      <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-8">
         {Header}
-        <section className="mt-8">
-          <h1 className="text-balance text-[1.75rem] font-bold leading-[1.3] tracking-[-0.01em] text-ink">
+        {/* 시안(자녀 가입): 30px 2줄 헤드라인 + 회색 부제 + 라벨 + 64px 입력 + 56px 전폭 CTA. */}
+        <section className="mt-6">
+          <h2 className="text-balance text-g-h1 text-ink">
             부모님 우편물을
             <br />
             대신 확인합니다
-          </h1>
-          <p className="mt-3 text-g-body text-ink-mid">
+          </h2>
+          <p className="mt-3 text-g-body text-ink-soft">
             부모님이 찍은 우편물이 여기로 옵니다. 읽은 내용, 공식 정보와 대조한 결과, 확인이 필요한 항목을 한 번에 봅니다.
           </p>
         </section>
-        <div className="mt-8 mb-5 flex border-b-2 border-ink" role="tablist">
+        <div className="mt-7 mb-6 flex rounded-control bg-well p-1" role="tablist">
           {(["login", "signup"] as const).map((m) => (
             <button
               key={m}
@@ -328,16 +330,16 @@ export default function Guardian() {
                 setMode(m);
                 setFormError("");
               }}
-              className={`min-h-tap flex-1 text-g-body font-bold ${
-                mode === m ? "-mb-0.5 border-b-4 border-brand text-brand" : "text-ink-soft"
+              className={`press min-h-tap flex-1 rounded-[14px] text-g-body font-bold ${
+                mode === m ? "bg-surface text-ink shadow-card" : "text-ink-soft"
               }`}
             >
               {m === "login" ? "로그인" : "가입"}
             </button>
           ))}
         </div>
-        <form onSubmit={submitAuth} className="flex flex-col gap-3">
-          <label htmlFor="email" className="text-g-body font-bold text-ink">
+        <form onSubmit={submitAuth} className="flex flex-col gap-2">
+          <label htmlFor="email" className="text-g-meta font-bold text-ink">
             이메일
           </label>
           <input
@@ -347,10 +349,10 @@ export default function Guardian() {
             inputMode="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-title text-ink"
+            className="min-h-16 rounded-control border-[1.5px] border-line bg-surface px-4 text-g-title font-normal text-ink focus:border-brand focus:outline-none"
             required
           />
-          <label htmlFor="password" className="mt-1 text-g-body font-bold text-ink">
+          <label htmlFor="password" className="mt-3 text-g-meta font-bold text-ink">
             비밀번호 <span className="font-normal text-ink-soft">(8자 이상)</span>
           </label>
           <input
@@ -360,13 +362,13 @@ export default function Guardian() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
-            className="min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-title text-ink"
+            className="min-h-16 rounded-control border-[1.5px] border-line bg-surface px-4 text-g-title font-normal text-ink focus:border-brand focus:outline-none"
             required
           />
           <button
             type="submit"
             disabled={busy}
-            className="press on-brand mt-3 min-h-[3.5rem] rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep disabled:opacity-60"
+            className="press on-brand mt-5 min-h-cta rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep disabled:opacity-60"
           >
             {busy ? "처리 중…" : mode === "signup" ? "가입하고 링크 만들기" : "로그인"}
           </button>
@@ -381,63 +383,106 @@ export default function Guardian() {
   }
 
   const attention = docs.filter((d) => d.result && NEEDS_ATTENTION.has(d.verdict ?? "") && d.resolution_status !== "done").length;
+  const isDone = (d: GuardianDoc) => d.resolution_status === "done" || d.action_status === "done";
+  const shown = docs.filter((d) =>
+    filter === "all" ? true : filter === "done" ? isDone(d) : !!d.result && NEEDS_ATTENTION.has(d.verdict ?? "") && !isDone(d),
+  );
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-8">
+    <main className="mx-auto max-w-2xl px-6 pb-8">
       {Header}
 
-      <div className="mt-6 mb-5 flex items-end justify-between gap-4">
-        <h1 className="text-[1.75rem] font-bold leading-[1.3] tracking-[-0.01em] text-ink">부모님 우편물</h1>
+      <div className="mt-5 mb-4">
+        <h2 className="text-g-h1 text-ink">부모님 우편물</h2>
         {docs.length > 0 && (
-          <p className="text-g-meta tabular-nums text-ink-mid">
-            확인 필요 <strong className="text-g-body text-ink">{attention}</strong> · 전체 <strong className="text-g-body text-ink">{docs.length}</strong>
+          <p className="mt-1 text-g-meta tabular-nums text-ink-soft">
+            받은 우편물 {docs.length}개 · 확인 필요 <strong className="text-ink">{attention}</strong>개
           </p>
         )}
       </div>
 
-      {/* 어르신 초대 링크. 우편물이 한 건이라도 왔으면 부모님 폰이 연결된 것 — 그 뒤로는 맨 아래 한 줄로 줄인다. */}
-      {docs.length === 0 && (
-        <section className="mb-6 rounded-card bg-well p-5">
-          <h2 className="text-g-body font-bold text-ink">부모님 폰에 보낼 링크</h2>
-          <p className="mt-1 text-g-body text-ink-mid">
-            부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+      {/* 시안(문서함)의 상태 칩. */}
+      {docs.length > 0 && (
+        <div className="mb-4 flex gap-2" role="tablist" aria-label="상태">
+          {(
+            [
+              ["all", "전체"],
+              ["attention", "확인 필요"],
+              ["done", "처리됨"],
+            ] as const
+          ).map(([k, label]) => (
             <button
+              key={k}
               type="button"
-              onClick={shareLink}
-              className="press on-brand inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+              role="tab"
+              aria-selected={filter === k}
+              onClick={() => setFilter(k)}
+              className={`press min-h-10 rounded-chip px-4 text-g-meta font-bold ${
+                filter === k ? "bg-brand-tint text-brand-deep" : "bg-surface text-ink-soft shadow-card"
+              }`}
             >
-              {copied ? <Check size={20} /> : <ArrowSquareOut size={18} />}
-              {copied ? "복사됨" : "링크 보내기"}
+              {label}
             </button>
-            <code className="min-w-0 break-all text-g-meta text-ink-soft">{elderLink}</code>
+          ))}
+        </div>
+      )}
+
+      {/* 어르신 초대 링크(시안 07A). 우편물이 한 건이라도 왔으면 부모님 폰이 연결된 것 — 그 뒤로는 맨 아래 한 줄로 줄인다. */}
+      {docs.length === 0 && (
+        <section className="mb-6">
+          <h3 className="text-g-h1 text-ink">
+            부모님께 초대 링크를
+            <br />
+            보내주세요
+          </h3>
+          <p className="mt-2 text-g-body text-ink-soft">부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.</p>
+          <div className="mt-5 flex items-center gap-3 rounded-card bg-surface p-4 shadow-card">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-inner bg-brand-tint text-brand-deep">
+              <Share size={24} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-g-body font-bold text-ink">초대 링크 보내기</span>
+              <span className="block text-g-meta text-ink-soft">문자나 카카오톡으로 보낼 수 있어요</span>
+            </span>
           </div>
+          <button
+            type="button"
+            onClick={shareLink}
+            className="press on-brand mt-3 inline-flex min-h-cta w-full items-center justify-center gap-2 rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep"
+          >
+            {copied ? <Check size={20} /> : <Share size={20} />}
+            {copied ? "링크를 복사했어요" : "부모님께 초대 링크 보내기"}
+          </button>
+          <code className="mt-2 block break-all text-g-meta text-ink-soft">{elderLink}</code>
         </section>
       )}
 
-      <div className="space-y-5">
-        {docs.map((d) => (
+      <div className="space-y-4">
+        {shown.map((d) => (
           <GuardianCard key={d.id} doc={d} onMark={mark} onApprove={approve} onInput={sendInput} />
         ))}
+
+        {docs.length > 0 && shown.length === 0 && (
+          <p className="rounded-card bg-surface px-5 py-8 text-center text-g-body text-ink-soft shadow-card">이 상태의 우편물이 없습니다.</p>
+        )}
 
         {docs.length > 0 && (
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-g-meta text-ink-soft">
             부모님 폰이 연결돼 있습니다.
-            <button type="button" onClick={shareLink} className="press min-h-tap rounded-inner px-1 font-bold text-brand active:bg-brand-tint">
+            <button type="button" onClick={shareLink} className="press min-h-tap rounded-inner px-1 font-bold text-brand-deep active:bg-brand-tint">
               {copied ? "복사됨" : "링크 다시 보내기"}
             </button>
           </p>
         )}
 
         {loaded && docs.length === 0 && (
-          <div className="flex flex-col items-center gap-3 rounded-card bg-well px-6 py-12 text-center">
-            <span className="text-ink-soft">
-              <Tray size={48} />
+          <div className="flex flex-col items-center gap-3 rounded-card bg-surface px-6 py-12 text-center shadow-card">
+            <span className="flex size-[4.5rem] items-center justify-center rounded-inner bg-brand-tint text-brand-deep">
+              <Tray size={40} />
             </span>
             <p className="text-g-title text-ink">아직 받은 우편물이 없습니다</p>
-            <p className="text-g-body text-ink-mid">위 링크를 부모님께 보내고, 부모님이 사진을 찍으면 여기에 올라옵니다.</p>
-            <Link href={`/elder?h=${me?.elderToken ?? ""}`} className="mt-2 text-g-body font-bold text-brand underline underline-offset-4">
+            <p className="text-g-body text-ink-soft">위 링크를 부모님께 보내고, 부모님이 사진을 찍으면 여기에 올라옵니다.</p>
+            <Link href={`/elder?h=${me?.elderToken ?? ""}`} className="mt-2 min-h-tap text-g-body font-bold text-brand-deep underline underline-offset-4">
               이 폰에서 어르신 화면 열어보기
             </Link>
           </div>

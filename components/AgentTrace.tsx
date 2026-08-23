@@ -65,7 +65,7 @@ export default function AgentTrace({
   }
 
   return (
-    <section className="mt-4 rounded-inner bg-well p-4" aria-live={active ? "polite" : undefined}>
+    <section className="mt-4 rounded-inner bg-paper p-4" aria-live={active ? "polite" : undefined}>
       <header className="flex items-center justify-between gap-3">
         <h3 className="text-g-body font-bold text-ink">독도가 한 일</h3>
         <span className={`rounded-chip px-2 py-0.5 text-g-meta font-bold ${st.cls}`}>
@@ -75,7 +75,7 @@ export default function AgentTrace({
       </header>
 
       {waiting && wait && (
-        <div className="mt-3 rounded-inner border-2 border-warn bg-warn-tint p-3">
+        <div className="mt-3 rounded-inner bg-warn-tint p-3">
           <p className="text-g-body font-bold text-warn-ink">{wait.reason}</p>
           <p className="mt-1 text-g-body text-ink-mid">{wait.hint}</p>
         </div>
@@ -123,9 +123,9 @@ export default function AgentTrace({
               onChange={(e) => setText(e.target.value)}
               placeholder="글자를 쳐야 하면 여기에 (즉시 삭제)"
               autoComplete="off"
-              className="min-h-tap min-w-0 flex-1 rounded-control border-2 border-line bg-surface px-3 text-g-body text-ink"
+              className="min-h-tap min-w-0 flex-1 rounded-control border-[1.5px] border-line bg-surface px-3 text-g-body text-ink"
             />
-            <button type="submit" className="press min-h-tap rounded-control border-2 border-line bg-surface px-3 text-g-body font-bold text-ink active:bg-brand-tint">
+            <button type="submit" className="press min-h-tap rounded-control bg-well px-3 text-g-body font-bold text-ink active:bg-brand-tint">
               입력
             </button>
           </form>
@@ -136,7 +136,7 @@ export default function AgentTrace({
         <button
           type="button"
           onClick={() => onInput({ kind: "resume" })}
-          className="press on-brand mt-3 min-h-tap w-full rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+          className="press on-brand mt-3 min-h-cta w-full rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
         >
           {wait?.mode === "confirm" ? "인증했어요 · 이어서 하기" : "이 단계 끝났어요 · 이어서 하기"}
         </button>
@@ -169,7 +169,7 @@ export default function AgentTrace({
                 <p className="text-ink">{s.title}</p>
                 {s.detail && <p className="break-all text-ink-soft">{s.detail}</p>}
                 {s.shot && (
-                  <button type="button" onClick={() => setOpenShot(openShot === i ? null : i)} className="mt-0.5 inline-flex items-center gap-1 font-bold text-brand">
+                  <button type="button" onClick={() => setOpenShot(openShot === i ? null : i)} className="mt-0.5 inline-flex items-center gap-1 font-bold text-brand-deep">
                     <CaretRight size={12} className={openShot === i ? "rotate-90" : ""} />
                     화면 {openShot === i ? "닫기" : "보기"}
                   </button>

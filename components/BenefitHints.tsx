@@ -10,8 +10,8 @@ export default function BenefitHints({ result }: { result: VerifyResult }) {
   if (!items.length) return null;
 
   return (
-    <section className="mt-4 border-l-4 border-brand pl-4">
-      <p className="mb-2 text-g-body font-bold text-brand">이 문서와 관련해 확인해 보실 제도</p>
+    <section className="mt-4 rounded-inner bg-brand-tint/60 p-4">
+      <p className="mb-2 text-g-body font-bold text-brand-deep">이 문서와 관련해 확인해 보실 제도</p>
       <ul className="space-y-4">
         {items.map((b) => (
           <li key={b.id} className="text-g-body">
@@ -24,7 +24,7 @@ export default function BenefitHints({ result }: { result: VerifyResult }) {
               {/* 연락처는 스냅샷의 공식 값이다. 문서에서 읽은 번호가 아니다. */}
               <a
                 href={`tel:${b.contact}`}
-                className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 font-bold text-ink active:bg-brand-tint"
+                className="press inline-flex min-h-tap items-center gap-2 rounded-control bg-surface px-3 font-bold text-ink active:bg-brand-tint"
               >
                 <Phone size={20} />
                 {b.contact}
@@ -33,7 +33,7 @@ export default function BenefitHints({ result }: { result: VerifyResult }) {
                 href={b.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="press inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-line bg-surface px-3 text-ink active:bg-brand-tint"
+                className="press inline-flex min-h-tap items-center gap-2 rounded-control bg-surface px-3 text-ink active:bg-brand-tint"
               >
                 <ArrowSquareOut size={18} />
                 공식 안내
