@@ -9,6 +9,9 @@ const digits = (s: string) => s.replace(/\D/g, "");
 export const DEMO_BILLS: DemoBill[] = [
   { epn: "1102-1234-5678-9012", issuer: "국민건강보험공단", title: "2026년 7월분 건강보험료", amount: 73000, due: "2026-08-25", payer: "이순자" },
   { epn: "1120-6032-4087-13912", issuer: "국민건강보험공단", title: "2026년 8월분 건강보험료", amount: 32000, due: "2026-08-30", payer: "김영자" },
+  // fixtures/06 통신요금 미납 안내 — 촬영본에 따라 Extract 가 두 가지로 읽는다.
+  { epn: "8801-2233-4455", issuer: "주식회사 케이티", title: "통신요금 미납 안내 (7월분)", amount: 45100, due: "2026-08-29", payer: "이순자" },
+  { epn: "0801-2233-4455-0000", issuer: "주식회사 케이티", title: "통신요금 미납 안내 (7월분)", amount: 45100, due: "2026-08-29", payer: "이순자" },
 ];
 
 export function findDemoBill(epn: string): DemoBill | null {
