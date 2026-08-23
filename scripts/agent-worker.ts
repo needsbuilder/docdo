@@ -121,7 +121,7 @@ async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, 
     const { inputs: stale = [] } = (await r0.json().catch(() => ({}))) as { inputs?: AgentInput[] };
     if (stale.length) await docApi(doc, { consumed: stale.map((i) => i.id) });
   }
-  const deadline = Date.now() + 10 * 60_000;
+  const deadline = Date.now() + 20 * 60_000;
   while (Date.now() < deadline) {
     const r = await docApi(doc, { consumed: [] });
     const { inputs = [] } = (await r.json().catch(() => ({}))) as { inputs?: AgentInput[] };
@@ -145,7 +145,7 @@ async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, 
     }
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error("보호자 응답 없이 10분이 지났습니다");
+  throw new Error("보호자 응답 없이 20분이 지났습니다");
 }
 
 const won = (n: number) => n.toLocaleString("ko-KR");
