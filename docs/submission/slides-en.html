@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DocDo — JunctionX Korea 2026</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; }
+  body { font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Inter, Arial, sans-serif; color: #14171c; -webkit-font-smoothing: antialiased; }
+  .s { width: 1280px; height: 720px; padding: 72px 88px; page-break-after: always; position: relative; display: flex; flex-direction: column; background: #fff; overflow: hidden; }
+  .s:last-child { page-break-after: auto; }
+  .k { font-size: 15px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: #6b7684; margin: 0 0 18px; }
+  h1 { font-size: 64px; line-height: 1.08; letter-spacing: -.025em; margin: 0 0 20px; font-weight: 700; }
+  h2 { font-size: 44px; line-height: 1.15; letter-spacing: -.02em; margin: 0 0 36px; font-weight: 700; max-width: 1000px; }
+  p, li { font-size: 21px; line-height: 1.5; margin: 0; color: #2b3340; }
+  .lead { font-size: 26px; color: #2b3340; max-width: 920px; }
+  .muted { color: #6b7684; }
+  .small { font-size: 17px; }
+  .foot { position: absolute; left: 88px; right: 88px; bottom: 32px; display: flex; justify-content: space-between; font-size: 14px; color: #9aa3ae; letter-spacing: .02em; }
+  .cols { display: grid; gap: 32px; }
+  .c3 { grid-template-columns: repeat(3, 1fr); }
+  .c2 { grid-template-columns: repeat(2, 1fr); }
+  .c4 { grid-template-columns: repeat(4, 1fr); }
+  .c5 { grid-template-columns: repeat(5, 1fr); }
+  .box { border-top: 2px solid #14171c; padding-top: 16px; }
+  .box h3 { font-size: 20px; margin: 0 0 8px; font-weight: 700; }
+  .box p, .box li { font-size: 18px; line-height: 1.5; }
+  .soft { background: #f5f6f8; border-radius: 16px; padding: 22px 24px; }
+  .soft h3 { font-size: 19px; margin: 0 0 8px; font-weight: 700; }
+  .soft p, .soft li { font-size: 18px; line-height: 1.5; }
+  .num { font-size: 52px; font-weight: 700; letter-spacing: -.02em; line-height: 1; margin-bottom: 10px; color: #14171c; }
+  .accent { color: #1b64da; }
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .step { border-top: 2px solid #d9dee5; padding-top: 14px; }
+  .step.on { border-top-color: #1b64da; }
+  .step.human { border-top-color: #e0a100; }
+  .step b { display: block; font-size: 18px; margin-bottom: 6px; }
+  .step span { font-size: 15px; color: #6b7684; line-height: 1.45; display: block; }
+  table { border-collapse: collapse; width: 100%; font-size: 18px; }
+  th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid #e5e8eb; vertical-align: top; }
+  th { color: #6b7684; font-weight: 600; width: 190px; }
+  td b { font-weight: 700; }
+  ul { padding-left: 22px; margin: 0; }
+  li + li { margin-top: 8px; }
+  .tag { display: inline-block; border-radius: 6px; padding: 3px 10px; font-size: 15px; font-weight: 600; }
+  .tag.ok { background: #e8faf4; color: #067a56; }
+  .tag.bad { background: #fff0f1; color: #c8303c; }
+  .tag.warn { background: #fff6e5; color: #8a5a00; }
+  .quote { font-size: 28px; font-weight: 600; letter-spacing: -.01em; line-height: 1.35; max-width: 1000px; margin-top: auto; padding-top: 28px; }
+  .cover { background: #14171c; color: #fff; justify-content: flex-end; }
+  .cover h1 { color: #fff; font-size: 88px; }
+  .cover .lead { color: rgba(255,255,255,.78); }
+  .cover .k { color: rgba(255,255,255,.55); }
+  .mark { width: 84px; height: 84px; border-radius: 20px; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 40px; overflow: hidden; }
+  .mark img { width: 84px; height: 84px; }
+  .end { background: #f5f6f8; justify-content: center; }
+  .end h1 { font-size: 56px; }
+</style>
+</head>
+<body>
+
+<section class="s cover">
+  <div class="mark"><img src="../../public/brand/mascot.png" alt=""></div>
+  <p class="k">JunctionX Korea 2026 · Upstage Studio track · Team Reporch</p>
+  <h1>DocDo</h1>
+  <p class="lead">Seniors photograph a letter and hear what it says. Their adult children see it checked against official records and approve. An agent completes the task. A person handles the authentication.</p>
+  <div class="foot" style="color:rgba(255,255,255,.5)"><span>docdo.vercel.app</span><span>github.com/needsbuilder/docdo</span></div>
+</section>
+
+<section class="s">
+  <p class="k">The problem</p>
+  <h2>For a low-literacy senior, mail is not a reading problem. It is a judgment problem.</h2>
+  <div class="cols c3">
+    <div class="box"><h3>What is this?</h3><p>Bills, notices, collection letters and ads arrive in the same envelope. Reading the words does not tell you which one it is.</p></div>
+    <div class="box"><h3>Is it real?</h3><p>Impersonation letters keep the amount and due date intact and change only the phone number or the account.</p></div>
+    <div class="box"><h3>What should I do?</h3><p>"Just pay it" is the sentence that moves money. No one should have to decide that alone.</p></div>
+  </div>
+  <p class="quote">So the senior's screen only explains, reassures and warns. Every action moves to the child's screen.</p>
+  <div class="foot"><span>DocDo</span><span>2</span></div>
+</section>
+
+<section class="s">
+  <p class="k">How it works</p>
+  <h2>One photo. Read, verified, approved, executed.</h2>
+  <div class="flow">
+    <div class="step"><b>Senior takes a photo</b><span>No account. One link from the child, then a home-screen icon.</span></div>
+    <div class="step on"><b>Upstage Studio</b><span>Document Parse → Classify → Extract (two branches)</span></div>
+    <div class="step"><b>Verification layer</b><span>Extracted facts checked against an official issuer registry</span></div>
+    <div class="step"><b>Two screens</b><span>Senior: large text and voice. Child: verdict, key values, to-dos, evidence.</span></div>
+    <div class="step on"><b>Solar agent</b><span>Looks up the bill on the payment portal. Pays only if the amount matches.</span></div>
+    <div class="step human"><b>Human turn</b><span>Authentication is done by the child, by hand, on their phone.</span></div>
+  </div>
+  <div class="cols c2" style="margin-top:40px">
+    <div class="soft"><h3>Never on the senior's screen</h3><p>Account numbers, pay buttons, payment links, application buttons. The only tappable phone number is the issuer's official one from the registry.</p></div>
+    <div class="soft"><h3>When it is done</h3><p>The senior's screen updates itself: "Handled · confirmation number". The loop closes.</p></div>
+  </div>
+  <div class="foot"><span>DocDo</span><span>3</span></div>
+</section>
+
+<section class="s">
+  <p class="k">Upstage at the core</p>
+  <h2>Studio handles the document. Solar Pro 4 decides the next action.</h2>
+  <div class="cols c2">
+    <div class="box"><h3>Studio agent: Parse → Classify → Extract ×2</h3>
+      <ul>
+        <li>Classify splits documents into <b>pay / apply / info / ad</b>. Only pay and apply reach Extract. Ads are intentionally unmapped.</li>
+        <li>Calls use <code>include: ["all"]</code> to get per-field confidence and coordinates. A value marked <code>low</code> is never spoken or shown.</li>
+        <li>If Classify's label is <code>low</code> but the score is ≥ 0.9, extraction continues and the verification layer decides.</li>
+      </ul></div>
+    <div class="box"><h3>Solar Pro 4 browser agent</h3>
+      <ul>
+        <li>Reads the page's accessibility tree (buttons, inputs, links with reference ids) and picks exactly one action: <code>click, type, press, scroll, wait_human, done, abort</code>.</li>
+        <li>Not pixel computer-use. It never sees an image; it reads structure.</li>
+        <li>Guardrails live in code: any password or certificate prompt hands over to a human before the model is called; pay buttons only when the document amount is visible; no navigation outside the allowed domain.</li>
+      </ul></div>
+  </div>
+  <p class="small muted" style="margin-top:28px">Platform findings we documented along the way: draft configs are invisible to the API · an unconfigured node blocks saving · <code>["last"]</code> drops confidence · an unmapped type removes the Extract step from the response entirely.</p>
+  <div class="foot"><span>DocDo</span><span>4</span></div>
+</section>
+
+<section class="s">
+  <p class="k">Safety principles · they override every other decision</p>
+  <h2>The senior's screen never leads to money.</h2>
+  <div class="cols c5">
+    <div class="box"><div class="num">1</div><p>No path to a transaction: no accounts, no pay buttons, no payment links.</p></div>
+    <div class="box"><div class="num">2</div><p>Uncertain values are not read. Extract <code>low</code> or missing means silence.</p></div>
+    <div class="box"><div class="num">3</div><p>Facts, not instructions. Not "you should pay", but "the letter says 73,000 won".</p></div>
+    <div class="box"><div class="num">4</div><p>Never tells anyone to throw a document away.</p></div>
+    <div class="box"><div class="num">5</div><p>Contacts and links extracted from the letter are never actionable. Calls go only to registry numbers.</p></div>
+  </div>
+  <div class="cols c2" style="margin-top:40px">
+    <div class="soft"><h3>Wording rule</h3><p><span class="tag ok">No verified mismatch</span> is the strongest thing we say. Never "genuine", "normal" or "safe". The screen shows what was checked, how many, and what was not.</p></div>
+    <div class="soft"><h3>Agent rules</h3><p>Never types passwords or certificates · aborts if the amount differs · stops after 3 identical screens or 25 steps · <code>done</code> only after the pay click.</p></div>
+  </div>
+  <div class="foot"><span>DocDo</span><span>5</span></div>
+</section>
+
+<section class="s">
+  <p class="k">Verification layer · what we decide after Studio</p>
+  <h2>We don't claim AI spots fakes. We compare against official records.</h2>
+  <div class="cols c2">
+    <table>
+      <tr><th>R1 Issuer match</th><td>Issuer name, phone, URL against the official registry. Department lines are accepted by area-code range.</td></tr>
+      <tr><th>R3 Confidence gate</th><td>Any <code>low</code> or missing key field: numbers are not read aloud.</td></tr>
+      <tr><th>R4 Personal mobile</th><td>A public agency bill with a 010 contact number is a hard warning.</td></tr>
+      <tr><th>R5 Classification</th><td>If the document type is uncertain, a person decides.</td></tr>
+      <tr><th>R6 Account holder</th><td>The virtual-account holder must equal the issuer name exactly.</td></tr>
+    </table>
+    <div class="soft">
+      <h3>Controlled experiment: two fields changed</h3>
+      <table>
+        <tr><th>Field</th><td>Control</td><td>Tampered</td></tr>
+        <tr><th>Contact phone</th><td>1577-1000</td><td><b>1588-9876</b></td></tr>
+        <tr><th>Website</th><td>nhis.or.kr</td><td><b>nhis-pay.co.kr</b></td></tr>
+        <tr><th>Amount, due, issuer</th><td colspan="2">Identical. Extract read both correctly.</td></tr>
+        <tr><th>Verdict</th><td><span class="tag ok">clear 2/2</span></td><td><span class="tag bad">mismatch 0/2</span></td></tr>
+      </table>
+      <p class="small muted" style="margin-top:12px">The verdict was decided by the registry check, not by the model.</p>
+    </div>
+  </div>
+  <div class="foot"><span>DocDo</span><span>6</span></div>
+</section>
+
+<section class="s">
+  <p class="k">Measured · regression on synthetic scenarios</p>
+  <h2>Numbers are reported as observed ranges.</h2>
+  <div class="cols c4">
+    <div class="box"><div class="num">12 / 12</div><p>Team-made fixtures, expected verdict</p></div>
+    <div class="box"><div class="num">12 · 11 <span class="muted" style="font-size:26px">/ 12</span></div><p>Photo-degradation simulation, mid · hard. The hard miss went <code>low</code> and was handed to a person.</p></div>
+    <div class="box"><div class="num">296</div><p>Regression tests, including 19 attack and missing-input cases and bypasses reproduced in review</p></div>
+    <div class="box"><div class="num">4.1 – 26.2 s</div><p>Processing time, observed range, n = 12. Not a P95.</p></div>
+  </div>
+  <div class="cols c2" style="margin-top:24px">
+    <div class="soft"><h3>Three printed letters today, real photos</h3><p><span class="tag ok">Busan Waterworks</span> no verified mismatch · <span class="tag warn">"Seoul Waterworks" (fake)</span> suspected impersonation · <span class="tag warn">Busan District Court</span> needs review</p></div>
+    <div class="soft"><h3>Registry</h3><p>Pilot coverage of 8 issuers (NHIS, MOHW, NPS, KEPCO, Pohang City, Busan District Court, Seoul Arisu, and a demo entry for Busan Waterworks). Private companies are not checked.</p></div>
+  </div>
+  <p class="quote" style="padding-top:18px;font-size:24px">When input degrades, it does not fail quietly. It hands over.</p>
+  <div class="foot"><span>DocDo</span><span>7</span></div>
+</section>
+
+<section class="s">
+  <p class="k">After approval · the agent acts, a person authenticates</p>
+  <h2>The child's turn: a live screen they can tap on their phone.</h2>
+  <div class="flow" style="grid-template-columns:repeat(5,1fr)">
+    <div class="step"><b>1 · Approve</b><span>Child's card: [Approve payment · 12,500 won]</span></div>
+    <div class="step on"><b>2 · Look up</b><span>Chromium worker on Railway. Solar reads the structure and acts.</span></div>
+    <div class="step"><b>3 · Amount guard</b><span>Portal amount must equal the document amount.</span></div>
+    <div class="step human"><b>4 · Human turn</b><span>Secure keypad, tapped by the child on the live frame.</span></div>
+    <div class="step"><b>5 · Done</b><span>Receipt → senior's screen says "Handled".</span></div>
+  </div>
+  <div class="cols c2" style="margin-top:40px">
+    <div class="soft"><h3>Why hand over</h3><p>Authentication, passwords and consent are legal acts. The agent stops the moment it sees them and resumes only after the child presses [Continue]. Remote inputs pass through a queue, are never stored, and are cleared when the run ends.</p></div>
+    <div class="soft"><h3>Demo portal</h3><p>The real Korean giro site requires a financial certificate even for guests, so lookups sit behind authentication. We run the same flow on a demo portal (always labelled "demo · no real payment") and show the real site up to its authentication wall. Connecting a real issuer means swapping the ledger for an API, not rewriting the agent.</p></div>
+  </div>
+  <div class="foot"><span>DocDo</span><span>8</span></div>
+</section>
+
+<section class="s">
+  <p class="k">Limits · stated first</p>
+  <h2>What these results do not say</h2>
+  <div class="cols c2">
+    <div class="box"><h3>Not detected</h3>
+      <ul>
+        <li>An impersonation letter that copies official contacts verbatim. Every value it carries is real, so a registry check passes it.</li>
+        <li>Sub-office names (e.g. "NPS Pohang Branch") cannot be told apart from fakes by structure alone. Both go to the child for review. We accept false positives to reduce misses.</li>
+        <li>We do not look up the real holder of a bank account. No authority. The screen says "not checked".</li>
+      </ul></div>
+    <div class="box"><h3>Next</h3>
+      <ul>
+        <li>Web push for the child: "a letter arrived", "your turn".</li>
+        <li>Registry growth from open government data, including local area-code ranges.</li>
+        <li>Real issuer APIs behind the same agent.</li>
+        <li>Show the child the original region of the photo using Extract coordinates, instead of reading the value.</li>
+      </ul></div>
+  </div>
+  <div class="foot"><span>DocDo</span><span>9</span></div>
+</section>
+
+<section class="s end">
+  <div class="mark"><img src="../../public/brand/mascot.png" alt=""></div>
+  <p class="k">DocDo · "doc do": the document acts</p>
+  <h1>Seniors listen. Children decide. DocDo does the rest.</h1>
+  <p class="lead">Demo <b>docdo.vercel.app</b> · Source <b>github.com/needsbuilder/docdo</b> (fully open, licenses in README)<br>Team Reporch · Upstage Studio track</p>
+  <div class="foot"><span>DocDo</span><span>10</span></div>
+</section>
+
+</body>
+</html>
