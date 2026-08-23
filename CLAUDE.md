@@ -58,6 +58,11 @@ JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch(37)
 - **Git 푸시는 배포가 아니다.** Vercel Git 연동이 없어서 `main`에 푸시해도 docdo.vercel.app은 안 바뀐다. **반드시 `vercel --prod --yes`** (8/23 07:00~08:30 여섯 번 푸시가 전부 미배포였다 — 음성·에이전트가 "반영 안 됨"으로 보인 원인).
 - 배포 확인은 `curl -X POST https://docdo.vercel.app/api/speech` 가 HTML 404 가 아닌 JSON/audio 인지로.
 
+## 에이전트 워커 위치
+
+- 워커는 **Railway `docdo-agent`** 에서 상시 기동(2026-08-23). `scripts/agent-worker.ts` 를 고치면 `git push` 뒤 **`railway up --service docdo-agent --detach`** 도 해야 반영된다(Vercel 과 마찬가지로 자동 배포 아님).
+- GCP 는 결제 계정 닫힘, AWS 키 만료 — 이 맥에서 바로 되는 건 Railway 뿐이다.
+
 ## 작업 방식
 
 - **팀원 산출물에 의존하지 않는다.** 백엔드·프론트·UI/UX 전부 직접 만든다.
