@@ -64,6 +64,13 @@ JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch(37)
 - 워커는 **Railway `docdo-agent`** 에서 상시 기동(2026-08-23). `scripts/agent-worker.ts` 를 고치면 `git push` 뒤 **`railway up --service docdo-agent --detach`** 도 해야 반영된다(Vercel 과 마찬가지로 자동 배포 아님).
 - GCP 는 결제 계정 닫힘, AWS 키 만료 — 이 맥에서 바로 되는 건 Railway 뿐이다.
 
+## 디자인 소스
+
+- 시각 언어는 팀 Figma 파일 **"최종"**(`O8wb2QcTbLVF8nbp7wFXNx`, 8/23 반영)이다: 흰 앱바 + 가운데 제목, `#3182f6` 파랑, `#f9fafb` 바탕 위 무테 흰 카드, 틴트 아이콘 박스, 알약 칩, 56px radius-18 CTA, 로고(`public/brand/`).
+- **서체(KoddiUD)와 어르신 글자 하한 20px 는 시안보다 우선한다.** 시안의 13~15px 는 보호자 meta 에만.
+- 시안에 있어도 넣지 않은 것: 하단 탭바·검색·알림 센터·가족 허브·OTP 인증·계좌번호 노출·"신뢰도 %"·"안전/정상" 문구·어르신 "자녀에게 보내기"(자동 전송). 이유는 안전 원칙·표현 규칙·미구현.
+- 시안의 빨강(`#f04452`)은 mismatch 전용이다. '할 일'·타이머·'필수' 라벨에 쓰지 않는다.
+
 ## 작업 방식
 
 - **팀원 산출물에 의존하지 않는다.** 백엔드·프론트·UI/UX 전부 직접 만든다.
