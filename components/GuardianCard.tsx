@@ -133,7 +133,7 @@ export default function GuardianCard({
           {todos.map((t, i) => (
             <li key={i} className={`flex gap-2.5 text-g-body ${TODO_TONE[t.tone]}`}>
               <span className={`mt-[0.6em] size-2 shrink-0 rounded-full ${TODO_DOT[t.tone]}`} />
-              {t.text}
+              <span className="min-w-0">{t.text}</span>
             </li>
           ))}
         </ul>

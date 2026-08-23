@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   description: "사진 한 장으로 우편물을 확인하고 자녀에게 전달합니다",
   manifest: "/manifest.json",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "DocDo" },
+  // iOS Safari 의 전화번호 자동 링크를 끈다. 원칙 5 — 문서에서 읽은 번호는 실행 경로가 되면 안 된다.
+  // 공식 번호는 레지스트리 값으로 만든 명시적 tel: 버튼만 쓴다. (자동 링크는 flex 안에서 글을 세 칸으로 쪼개기도 했다.)
+  formatDetection: { telephone: false, email: false, address: false },
 };
 
 export const viewport: Viewport = {
