@@ -270,6 +270,14 @@ describe("R7 — 사칭 의심(미등록 + 공공요금 명칭 + 민간법인/�
     expect(r.issuerId).toBe("busan_water");
     expect(r.verdict).toBe("clear");
   });
+  it("분류 low 지만 점수 0.92 — 추출을 계속해 대조로 판단 (법원 결정문)", () => {
+    const r = verify(job({ cls: "apply", conf: "low", score: 0.92, fields: { issuer: "부산지방법원", doc_title: "지급명령 결정문", contact_phone: "051-590-3114", info_url: "www.scourt.go.kr", apply_deadline: "" } }));
+    expect(r.verdict).not.toBe("needs_human");
+    expect(r.issuerId).toBe("busan_court");
+  });
+  it("분류 low 에 점수 0.18 은 여전히 needs_human", () => {
+    expect(verify(job({ cls: "info", conf: "low", score: 0.18 })).verdict).toBe("needs_human");
+  });
   it("부산지방법원 — 공식 번호·도메인이면 clear", () => {
     const r = verify(
       job({ fields: { ...OK, issuer: "부산지방법원", doc_title: "소송 서류 송달", contact_phone: "051-590-1114", info_url: "busan.scourt.go.kr", payee_name: "" } }),

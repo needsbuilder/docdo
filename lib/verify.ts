@@ -398,8 +398,11 @@ export function verify(job: unknown): VerifyResult {
     });
     return out;
   }
-  // 분류 자체를 못 믿으면 사람에게 보낸다 (손글씨·비정형 문서)
-  if (clsConf === "low") {
+  // 분류 자체를 못 믿으면 사람에게 보낸다 (손글씨·비정형 문서).
+  // 단, 범주는 low 여도 점수가 0.9 이상이면(법원 결정문처럼 네 종류에 딱 맞지 않는 공문) 추출을 계속하고
+  // 사유만 남긴다 — 판정은 아래 대조 규칙이 정한다. (8/23: 부산지법 지급명령 0.92/low 가 필드 없이 떨어졌다)
+  const CLASSIFY_SCORE_FLOOR = 0.9;
+  if (clsConf === "low" && !(typeof out.classifyScore === "number" && out.classifyScore >= CLASSIFY_SCORE_FLOOR)) {
     out.verdict = "needs_human";
     out.reasons.push({
       rule: "R5",
@@ -407,6 +410,13 @@ export function verify(job: unknown): VerifyResult {
       action: "자녀가 직접 확인",
     });
     return out;
+  }
+  if (clsConf === "low") {
+    out.reasons.push({
+      rule: "R5",
+      detail: `문서 종류 분류가 확실하지 않음 (${out.classifyScore}) — 대조 결과로 판단`,
+      action: "자녀 확인 권장",
+    });
   }
 
   if (!st.extract) {

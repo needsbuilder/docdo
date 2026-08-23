@@ -32,6 +32,7 @@ JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch(37)
 - **`additional_values`는 객체로 온다**(문자열이면 `JSON.parse`). Extract는 필드별 `{_value, confidence: high|low, page, coordinates, word_coordinates}`, Classify는 `document_type {_value, confidence_score(0~1), confidence(high|low)}` + `hierarchy`.
 - **미매핑 타입은 Extract 단계가 응답에서 통째로 빠진다**(빈 결과가 아니다).
 - **Extract의 confidence는 `high`/`low` 범주**다. 숫자 임계값이 아니다. 공식 문서가 "confident한데 incorrect할 수 있다"고 경고한다.
+- **Classify는 범주 + `confidence_score`(0~1)를 같이 준다.** 범주 `low`라도 점수 ≥0.9 면 추출을 계속하고 대조로 판정한다(8/23: 부산지법 지급명령이 0.92/low 로 필드 없이 떨어졌다). 0.9 미만은 `needs_human`.
 - **`failed`는 종결 상태**다. 같은 `job_id` 재조회로는 안 된다 — 새 job을 만든다.
 - 상태값: `queued` / `in_progress` / `completed` / `failed`.
 - 웹훅 콜백이 없다. 폴링뿐이다.
