@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { store, type DocPatch, type DocRow, type AgentInput } from "@/lib/store";
-import { fetchJob, deleteFile } from "@/lib/upstage";
-import { verify } from "@/lib/verify";
-import { buildPhrases } from "@/lib/phrase";
+import { advanceDocument } from "@/lib/advance";
 import { getSession, readElderToken, NO_STORE } from "@/lib/auth";
 import { toElderDoc, toGuardianDoc } from "@/lib/dto";
 
@@ -11,9 +9,6 @@ export const runtime = "nodejs";
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: NO_STORE });
 }
-
-const TERMINAL = new Set(["completed", "failed"]);
-const PENDING = new Set(["queued", "in_progress"]);
 
 type Caller = { kind: "guardian" } | { kind: "elder" } | null;
 
@@ -43,60 +38,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const c = await caller(req, doc);
   if (!c) return json({ error: "없음" }, 404);
 
-  // 이미 판정이 끝난 문서는 다시 Upstage 를 부르지 않는다.
-  // 지난번 삭제가 실패했으면 여기서 한 번 더 시도한다.
-  if (doc.result) {
-    if (doc.upstage_file_id && doc.upstage_file_id !== "delete_pending") {
-      const ok = await deleteFile(doc.upstage_file_id);
-      await db.update(id, { upstage_file_id: ok ? null : "delete_pending" }).catch(() => {});
-    }
-    return json(shape(c, doc));
-  }
-
-  if (doc.pipeline_status === "uploading" || !doc.upstage_job_id) {
-    if (doc.pipeline_status === "failed") {
-      return json(shape(c, { ...doc, error: "문서 처리 서비스에 연결하지 못했습니다" }));
-    }
-    return json(shape(c, doc));
-  }
-
-  let job;
-  try {
-    job = await fetchJob(doc.upstage_job_id);
-  } catch (e) {
-    console.error("[documents] fetchJob 실패", id, e);
+  // 진행 로직은 lib/advance.ts — 워커의 정기 점검(/api/agent/sweep)과 같은 함수다.
+  const r = await advanceDocument(doc);
+  if (r.kind === "retry") {
     // 일시적일 수 있다. 종결로 굳히지 않고 다시 물어보게 한다.
     return json({ ...shape(c, doc), pipeline_status: "retry" }, 503);
   }
-
-  const status = typeof job.status === "string" ? job.status : "";
-  if (PENDING.has(status)) {
-    await db.update(id, { pipeline_status: status });
-    return json(shape(c, { ...doc, pipeline_status: status }));
-  }
-  if (!TERMINAL.has(status)) {
-    // 알 수 없는 상태. 원본을 지우지 않고 실패로 굳힌다.
-    console.error("[documents] 알 수 없는 job status", id, status);
-    const updated = await db.update(id, { pipeline_status: "failed" });
-    return json(shape(c, { ...(updated ?? doc), error: "문서 처리 결과를 해석하지 못했습니다" }));
-  }
-
-  // failed 는 종결 상태다. 같은 job_id 재조회로는 안 되므로 결과를 그대로 굳힌다.
-  const result = verify(job);
-  const phrases = buildPhrases(result);
-  const updated = await db.update(id, {
-    pipeline_status: status,
-    action_type: result.actionType ?? null,
-    verdict: result.verdict,
-    result,
-    phrases,
-  });
-  // 원본 사진은 판독이 끝나면 지운다. 실패하면 표시해 두고 다음 조회에서 다시 시도한다.
-  if (doc.upstage_file_id) {
-    const ok = await deleteFile(doc.upstage_file_id);
-    await db.update(id, { upstage_file_id: ok ? null : doc.upstage_file_id }).catch(() => {});
-  }
-  return json(shape(c, updated ?? { ...doc, result, phrases, verdict: result.verdict }));
+  if (r.kind === "failed") return json(shape(c, { ...r.doc, error: r.error }));
+  return json(shape(c, r.doc));
 }
 
 // 보호자의 처리 상태. 한 방향으로만 간다. done 은 종결이다.

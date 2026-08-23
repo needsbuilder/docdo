@@ -128,8 +128,8 @@ export default function Elder() {
       if (stale()) return;
       setStage("error");
       if (e instanceof PollTimeout) {
-        setErrorText("판독이 예상보다 오래 걸리고 있어요");
-        speak("판독이 예상보다 오래 걸리고 있어요. 잠시 후 다시 찍어 주세요.", { elderToken: h });
+        setErrorText("판독이 예상보다 오래 걸리고 있어요. 결과는 자녀분 화면에 올라가요");
+        speak("판독이 예상보다 오래 걸리고 있어요. 결과는 자녀분 화면에 올라가요.", { elderToken: h });
       } else {
         setErrorText(e instanceof Error && e.message ? e.message : "잠시 문제가 있었어요");
       }

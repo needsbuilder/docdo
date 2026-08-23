@@ -377,6 +377,8 @@ async function main() {
   console.log(`[agent] ${BASE} · mode=${MODE} · adapter=${ADAPTER} · headed=${HEADED}`);
   for (;;) {
     try {
+      // 판정이 안 난 문서를 서버가 진행시키게 한다. 어르신 폰이 잠겨도 결과는 나와야 한다(12:00 로딩 갇힘 재발 방지).
+      await api("/api/agent/sweep", {}).catch(() => null);
       const r = await api("/api/agent/claim", {});
       if (r.ok) {
         const { document } = (await r.json()) as { document: Doc | null };
