@@ -130,7 +130,8 @@ async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, 
   // 사람이 조작할 부분(인증·비밀번호)이 실시간 화면 안에 들어오게 스크롤한다. 터치 좌표는 화면 기준이다.
   await page
     .evaluate(
-      `(() => { const re = /비밀번호|인증서|본인인증|키패드|OTP|인증/; const els = Array.from(document.querySelectorAll("h1,h2,h3,h4,legend,label,p,div")); const el = els.find((e) => e.children.length < 12 && re.test(e.textContent || "")); if (el) el.scrollIntoView({ block: "start" }); })()`,
+      // #auth 가 있으면 그것. 없으면 인증 문구를 가진 **안쪽** 요소(글자 300자 미만) — 페이지 전체를 감싸는 div 가 먼저 걸리면 맨 위로 스크롤돼 키패드가 화면 밖으로 나간다(12:50 실측).
+      `(() => { const auth = document.querySelector("#auth"); if (auth) { auth.scrollIntoView({ block: "start" }); return; } const re = /비밀번호|인증서|본인인증|키패드|OTP|인증/; const els = Array.from(document.querySelectorAll("h1,h2,h3,h4,legend,label,p,div")).filter((e) => { const t = e.textContent || ""; return t.length < 300 && re.test(t); }); const el = els[0]; if (el) el.scrollIntoView({ block: "start" }); })()`,
     )
     .catch(() => {});
   await page.waitForTimeout(300);
