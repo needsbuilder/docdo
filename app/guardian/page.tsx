@@ -188,12 +188,13 @@ export default function Guardian() {
     };
   }, [auth, docs]);
 
-  // 에이전트가 돌고 있는 문서는 1초마다 따로 받아 실시간 화면·단계를 그린다.
+  // 에이전트가 돌고 있는 문서는 따로 받아 실시간 화면·단계를 그린다. 보호자 차례(waiting)면 더 자주.
   useEffect(() => {
     if (auth !== "ok") return;
     const running = docs.filter((d) => d.action_status === "running" || d.action_status === "queued" || d.action_status === "waiting");
     if (!running.length) return;
     const ac = new AbortController();
+    const period = running.some((d) => d.action_status === "waiting") ? 400 : 1000;
     const t = setInterval(() => {
       if (document.visibilityState !== "visible") return;
       for (const d of running) {
@@ -204,7 +205,7 @@ export default function Guardian() {
           })
           .catch(() => {});
       }
-    }, 1000);
+    }, period);
     return () => {
       ac.abort();
       clearInterval(t);
@@ -218,6 +219,15 @@ export default function Guardian() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input }),
       });
+      // 워커가 반영한 화면을 주기 전에 한 번 당겨 받는다.
+      setTimeout(() => {
+        fetch(`/api/documents/${id}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((next: GuardianDoc | null) => {
+            if (next?.id) setDocs((ds) => ds.map((x) => (x.id === next.id ? next : x)));
+          })
+          .catch(() => {});
+      }, 450);
     } catch {
       /* 다음 폴링이 진실이다 */
     }

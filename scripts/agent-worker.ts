@@ -83,6 +83,7 @@ async function shot(page: Page, quality = 55): Promise<string> {
 }
 
 /** 실행 중 화면을 보호자 폰으로 계속 보낸다. 단계 기록과 별개로, 실패해도 흐름을 막지 않는다. */
+let pushLiveNow: (() => Promise<void>) | null = null;
 function startLive(page: Page, doc: Doc): () => void {
   let stopped = false;
   let busy = false;
@@ -99,8 +100,10 @@ function startLive(page: Page, doc: Doc): () => void {
     }
   };
   const t = setInterval(tick, LIVE_MS);
+  pushLiveNow = tick;
   return () => {
     stopped = true;
+    pushLiveNow = null;
     clearInterval(t);
   };
 }
@@ -138,12 +141,17 @@ async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, 
         console.error("[agent] 입력 실패", e instanceof Error ? e.message : e);
       }
     }
-    if (consumed.length) await docApi(doc, { consumed });
+    if (consumed.length) {
+      await docApi(doc, { consumed });
+      // 입력을 반영한 화면을 바로 올린다 — 주기를 기다리면 보호자가 느리다고 느낀다.
+      await page.waitForTimeout(120);
+      await pushLiveNow?.();
+    }
     if (resume) {
       await docApi(doc, { status: "running", step: { title: "보호자가 넘겨줘서 이어서 진행합니다" } });
       return;
     }
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 150));
   }
   throw new Error("보호자 응답 없이 20분이 지났습니다");
 }
