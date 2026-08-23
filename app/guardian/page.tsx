@@ -7,7 +7,7 @@ import GuardianCard from "@/components/GuardianCard";
 import AppBar from "@/components/AppBar";
 import { pointManifest } from "@/lib/pwa";
 import { pushState, enablePush, type PushState } from "@/lib/pushClient";
-import { Tray, Check, Share } from "@/components/icons";
+import { Check, Share } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
 // 보호자는 이메일+비밀번호로 가입한다. 가입하면 가구 하나와 어르신 초대 링크가 생긴다.
@@ -416,32 +416,35 @@ export default function Guardian() {
     <main className="mx-auto max-w-2xl px-6 pb-8">
       {Header}
 
-      <div className="mt-5 mb-4">
-        <h2 className="text-g-h1 text-ink">부모님 우편물</h2>
-        {docs.length > 0 && (
-          <p className="mt-1 text-g-meta tabular-nums text-ink-soft">
-            받은 우편물 {docs.length}개 · 확인 필요 <strong className="text-ink">{attention}</strong>개
-          </p>
-        )}
-      </div>
+      {/* 머리: 숫자 두 개. 앱바가 이미 제목이므로 제목을 반복하지 않는다. */}
+      {docs.length > 0 && (
+        <div className="mt-6 mb-5 flex items-end gap-8">
+          <div>
+            <p className="text-g-meta text-ink-soft">확인 필요</p>
+            <p className={`text-[2.5rem] font-bold leading-none tabular-nums tracking-[-0.02em] ${attention > 0 ? "text-ink" : "text-ink-soft"}`}>{attention}</p>
+          </div>
+          <div>
+            <p className="text-g-meta text-ink-soft">받은 우편물</p>
+            <p className="text-[2.5rem] font-bold leading-none tabular-nums tracking-[-0.02em] text-ink-soft">{docs.length}</p>
+          </div>
+        </div>
+      )}
 
-      {/* 푸시 알림 — 우편물 도착·보호자 차례를 폰으로. 한 줄, 켜지면 사라진다. */}
+      {/* 푸시 알림 — 한 줄, 켜지면 사라진다. */}
       {push === "off" && (
-        <button type="button" onClick={turnOnPush} className="press mb-4 flex min-h-tap w-full items-center justify-between gap-3 rounded-card bg-brand-tint px-4 text-left text-g-body text-brand-deep active:bg-brand/20">
-          <span>부모님이 우편물을 찍으면 알림으로 받기</span>
-          <span className="shrink-0 font-bold">알림 켜기</span>
+        <button type="button" onClick={turnOnPush} className="press mb-4 flex min-h-tap w-full items-center justify-between gap-3 border-y border-line-soft text-left text-g-body text-ink active:bg-well">
+          <span>부모님이 우편물을 찍으면 알림 받기</span>
+          <span className="shrink-0 font-bold underline underline-offset-4">켜기</span>
         </button>
       )}
       {push === "needs-install" && (
-        <p className="mb-4 rounded-card bg-well px-4 py-3 text-g-meta text-ink-mid">알림을 받으려면 Safari 공유 버튼 → <strong className="text-ink">홈 화면에 추가</strong> 한 뒤 그 아이콘으로 열어 주세요.</p>
+        <p className="mb-4 border-y border-line-soft py-3 text-g-meta text-ink-mid">알림은 Safari 공유 → <strong className="text-ink">홈 화면에 추가</strong> 한 아이콘에서만 켤 수 있어요.</p>
       )}
-      {push === "denied" && (
-        <p className="mb-4 rounded-card bg-well px-4 py-3 text-g-meta text-ink-mid">알림이 꺼져 있어요. 설정 → 독도 → 알림에서 켤 수 있어요.</p>
-      )}
+      {push === "denied" && <p className="mb-4 border-y border-line-soft py-3 text-g-meta text-ink-mid">알림이 꺼져 있어요. 설정 → 독도 → 알림에서 켤 수 있어요.</p>}
 
-      {/* 시안(문서함)의 상태 칩. */}
+      {/* 상태 탭 — 밑줄 하나. */}
       {docs.length > 0 && (
-        <div className="mb-4 flex gap-2" role="tablist" aria-label="상태">
+        <div className="mb-4 flex gap-6 border-b border-line-soft" role="tablist" aria-label="상태">
           {(
             [
               ["all", "전체"],
@@ -455,9 +458,7 @@ export default function Guardian() {
               role="tab"
               aria-selected={filter === k}
               onClick={() => setFilter(k)}
-              className={`press min-h-10 rounded-chip px-4 text-g-meta font-bold ${
-                filter === k ? "bg-brand-tint text-brand-deep" : "bg-surface text-ink-soft shadow-card"
-              }`}
+              className={`-mb-px min-h-tap border-b-2 text-g-body font-bold ${filter === k ? "border-ink text-ink" : "border-transparent text-ink-soft"}`}
             >
               {label}
             </button>
@@ -474,19 +475,10 @@ export default function Guardian() {
             보내주세요
           </h3>
           <p className="mt-2 text-g-body text-ink-soft">부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.</p>
-          <div className="mt-5 flex items-center gap-3 rounded-card bg-surface p-4 shadow-card">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-inner bg-brand-tint text-brand-deep">
-              <Share size={24} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-g-body font-bold text-ink">초대 링크 보내기</span>
-              <span className="block text-g-meta text-ink-soft">문자나 카카오톡으로 보낼 수 있어요</span>
-            </span>
-          </div>
           <button
             type="button"
             onClick={shareLink}
-            className="press on-brand mt-3 inline-flex min-h-cta w-full items-center justify-center gap-2 rounded-control bg-brand-deep px-4 text-g-title text-surface active:bg-brand-press"
+            className="press on-brand mt-5 inline-flex min-h-cta w-full items-center justify-center gap-2 rounded-control bg-ink px-4 text-g-title text-surface active:bg-ink-mid"
           >
             {copied ? <Check size={20} /> : <Share size={20} />}
             {copied ? "링크를 복사했어요" : "부모님께 초대 링크 보내기"}
@@ -495,29 +487,26 @@ export default function Guardian() {
         </section>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {shown.map((d) => (
           <GuardianCard key={d.id} doc={d} onMark={mark} onApprove={approve} onInput={sendInput} />
         ))}
 
         {docs.length > 0 && shown.length === 0 && (
-          <p className="rounded-card bg-surface px-5 py-8 text-center text-g-body text-ink-soft shadow-card">이 상태의 우편물이 없습니다.</p>
+          <p className="py-8 text-center text-g-body text-ink-soft">이 상태의 우편물이 없습니다.</p>
         )}
 
         {docs.length > 0 && (
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-g-meta text-ink-soft">
             부모님 폰이 연결돼 있습니다.
-            <button type="button" onClick={shareLink} className="press min-h-tap rounded-inner px-1 font-bold text-brand-deep active:bg-brand-tint">
+            <button type="button" onClick={shareLink} className="press min-h-tap rounded-inner px-1 font-bold text-ink underline underline-offset-4 active:bg-well">
               {copied ? "복사됨" : "링크 다시 보내기"}
             </button>
           </p>
         )}
 
         {loaded && docs.length === 0 && (
-          <div className="flex flex-col items-center gap-3 rounded-card bg-surface px-6 py-12 text-center shadow-card">
-            <span className="flex size-[4.5rem] items-center justify-center rounded-inner bg-brand-tint text-brand-deep">
-              <Tray size={40} />
-            </span>
+          <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
             <p className="text-g-title text-ink">아직 받은 우편물이 없습니다</p>
             <p className="text-g-body text-ink-soft">위 링크를 부모님께 보내고, 부모님이 사진을 찍으면 여기에 올라옵니다.</p>
             <Link href={`/elder?h=${me?.elderToken ?? ""}`} className="mt-2 min-h-tap text-g-body font-bold text-brand-deep underline underline-offset-4">
