@@ -80,6 +80,24 @@
   <div class="foot"><span>DocDo</span><span>2</span></div>
 </section>
 
+
+<section class="s">
+  <p class="k">Gyeongbuk's problem</p>
+  <h2>Where aging arrived first, government still arrives on paper.</h2>
+  <div class="cols c4">
+    <div class="box"><div class="num">1 in 4</div><p>Gyeongbuk residents aged 65+: 26.1%, among the highest in Korea</p></div>
+    <div class="box"><div class="num">49.2%</div><p>Uiseong County's 65+ share, the highest of all 226 districts</p></div>
+    <div class="box"><div class="num">19</div><p>Gyeongbuk districts already super-aged, the most of any province</p></div>
+    <div class="box"><div class="num">16% → 30%</div><p>Voice-phishing victims aged 60+, 2020 → H1 2025</p></div>
+  </div>
+  <div class="cols c2" style="margin-top:32px">
+    <div class="soft"><h3>The mailbox is the closest attack path</h3><p>Local tax, water, health insurance, pension and welfare notices all come on paper. The regulator's newest top scam: fake "registered mail delivery" messages.</p></div>
+    <div class="soft"><h3>Family is far away</h3><p>38.7% of households include an older adult. For a parent alone, a bill means photo → chat → a phone call → still no certainty.</p></div>
+  </div>
+  <p class="small muted" style="margin-top:18px">Sources: Statistics Korea, 2025 Statistics on the Aged · Ministry of the Interior resident registration, Sept 2025 · Financial Supervisory Service</p>
+  <div class="foot"><span>DocDo</span><span>3</span></div>
+</section>
+
 <section class="s">
   <p class="k">How it works</p>
   <h2>One photo. Read, verified, approved, executed.</h2>
@@ -95,7 +113,7 @@
     <div class="soft"><h3>Never on the senior's screen</h3><p>Account numbers, pay buttons, payment links, application buttons. The only tappable phone number is the issuer's official one from the registry.</p></div>
     <div class="soft"><h3>When it is done</h3><p>The senior's screen updates itself: "Handled · confirmation number". The loop closes.</p></div>
   </div>
-  <div class="foot"><span>DocDo</span><span>3</span></div>
+  <div class="foot"><span>DocDo</span><span>4</span></div>
 </section>
 
 <section class="s">
@@ -116,7 +134,7 @@
       </ul></div>
   </div>
   <p class="small muted" style="margin-top:28px">Platform findings we documented along the way: draft configs are invisible to the API · an unconfigured node blocks saving · <code>["last"]</code> drops confidence · an unmapped type removes the Extract step from the response entirely.</p>
-  <div class="foot"><span>DocDo</span><span>4</span></div>
+  <div class="foot"><span>DocDo</span><span>5</span></div>
 </section>
 
 <section class="s">
@@ -133,7 +151,7 @@
     <div class="soft"><h3>Wording rule</h3><p><span class="tag ok">No verified mismatch</span> is the strongest thing we say. Never "genuine", "normal" or "safe". The screen shows what was checked, how many, and what was not.</p></div>
     <div class="soft"><h3>Agent rules</h3><p>Never types passwords or certificates · aborts if the amount differs · stops after 3 identical screens or 25 steps · <code>done</code> only after the pay click.</p></div>
   </div>
-  <div class="foot"><span>DocDo</span><span>5</span></div>
+  <div class="foot"><span>DocDo</span><span>6</span></div>
 </section>
 
 <section class="s">
@@ -159,7 +177,7 @@
       <p class="small muted" style="margin-top:12px">The verdict was decided by the registry check, not by the model.</p>
     </div>
   </div>
-  <div class="foot"><span>DocDo</span><span>6</span></div>
+  <div class="foot"><span>DocDo</span><span>7</span></div>
 </section>
 
 <section class="s">
@@ -176,7 +194,7 @@
     <div class="soft"><h3>Registry</h3><p>Pilot coverage of 8 issuers (NHIS, MOHW, NPS, KEPCO, Pohang City, Busan District Court, Seoul Arisu, and a demo entry for Busan Waterworks). Private companies are not checked.</p></div>
   </div>
   <p class="quote" style="padding-top:18px;font-size:24px">When input degrades, it does not fail quietly. It hands over.</p>
-  <div class="foot"><span>DocDo</span><span>7</span></div>
+  <div class="foot"><span>DocDo</span><span>8</span></div>
 </section>
 
 <section class="s">
@@ -193,7 +211,21 @@
     <div class="soft"><h3>Why hand over</h3><p>Authentication, passwords and consent are legal acts. The agent stops the moment it sees them and resumes only after the child presses [Continue]. Remote inputs pass through a queue, are never stored, and are cleared when the run ends.</p></div>
     <div class="soft"><h3>Demo portal</h3><p>The real Korean giro site requires a financial certificate even for guests, so lookups sit behind authentication. We run the same flow on a demo portal (always labelled "demo · no real payment") and show the real site up to its authentication wall. Connecting a real issuer means swapping the ledger for an API, not rewriting the agent.</p></div>
   </div>
-  <div class="foot"><span>DocDo</span><span>8</span></div>
+  <div class="foot"><span>DocDo</span><span>9</span></div>
+</section>
+
+
+<section class="s">
+  <p class="k">Public sector · Gyeongbuk</p>
+  <h2>Only one thing changes: who sits in the child's seat.</h2>
+  <div class="cols c2">
+    <div class="box"><h3>1 · Care workers' case management</h3><p>When a senior-care life-support worker photographs the mail on a visit, today's child screen becomes their case screen: who got which bill, due when, handled or not. On record instead of in a notebook.</p></div>
+    <div class="box"><h3>2 · Township offices and senior centers</h3><p>Seniors without a phone use the same flow on a counter or senior-center tablet. The senior side has no account, so any device works.</p></div>
+    <div class="box"><h3>3 · A Gyeongbuk issuer registry</h3><p>Register official numbers and accounts for local tax and water bills across 23 cities and counties, and every public notice sent in Gyeongbuk becomes checkable. Data entry, not model development. Flagged impersonation patterns go back to local government and police.</p></div>
+    <div class="box"><h3>4 · Public payment APIs</h3><p>When Wetax or Giro open an API, we swap the ledger. The agent stays the same. A human still authenticates.</p></div>
+  </div>
+  <p class="quote">A tool that helps the family when there is one, and lets the public sector take that seat when there isn't.</p>
+  <div class="foot"><span>DocDo</span><span>10</span></div>
 </section>
 
 <section class="s">
@@ -214,7 +246,7 @@
         <li>Show the child the original region of the photo using Extract coordinates, instead of reading the value.</li>
       </ul></div>
   </div>
-  <div class="foot"><span>DocDo</span><span>9</span></div>
+  <div class="foot"><span>DocDo</span><span>11</span></div>
 </section>
 
 <section class="s end">
@@ -222,7 +254,7 @@
   <p class="k">DocDo · "doc do": the document acts</p>
   <h1>Seniors listen. Children decide. DocDo does the rest.</h1>
   <p class="lead">Demo <b>docdo.vercel.app</b> · Source <b>github.com/needsbuilder/docdo</b> (fully open, licenses in README)<br>Team 정션없음 (Jeongsyeon-eopseum) · Upstage Studio track</p>
-  <div class="foot"><span>DocDo</span><span>10</span></div>
+  <div class="foot"><span>DocDo</span><span>12</span></div>
 </section>
 
 </body>
