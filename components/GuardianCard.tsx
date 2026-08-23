@@ -174,35 +174,30 @@ export default function GuardianCard({
           {agentActive && d.action_status !== "waiting" && (
             <span className="flex min-h-tap items-center text-g-body text-ink-mid">독도가 처리 중입니다…</span>
           )}
-          {confirm ? (
-            <>
-              <span className="flex min-h-tap items-center text-g-body text-ink">완료로 표시할까요? 부모님 화면도 바뀝니다.</span>
-              <button type="button" onClick={() => { setConfirm(false); onMark(d.id, "done"); }} className="press on-brand min-h-tap rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep">
-                완료
-              </button>
-              <button type="button" onClick={() => setConfirm(false)} className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body text-ink active:bg-brand-tint">
-                취소
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => onMark(d.id, "acknowledged")}
-                disabled={d.resolution_status !== "new"}
-                className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body font-bold text-ink active:bg-brand-tint disabled:border-line-soft disabled:text-ink-soft"
-              >
-                {d.resolution_status === "new" ? "확인함" : "확인됨"}
-              </button>
+          {/* 에이전트 없이 사람이 직접 처리한 경우만. 승인이 곧 확인이므로 별도 '확인함'은 없다. */}
+          {!agentActive && !done && (
+            confirm ? (
+              <>
+                <span className="flex min-h-tap items-center text-g-body text-ink">직접 처리하셨나요? 부모님 화면도 바뀝니다.</span>
+                <button type="button" onClick={() => { setConfirm(false); onMark(d.id, "done"); }} className="press on-brand min-h-tap rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep">
+                  네, 처리했어요
+                </button>
+                <button type="button" onClick={() => setConfirm(false)} className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body text-ink active:bg-brand-tint">
+                  취소
+                </button>
+              </>
+            ) : (
               <button
                 type="button"
                 onClick={() => setConfirm(true)}
-                disabled={done || agentActive}
-                className={`press min-h-tap rounded-control px-4 text-g-body font-bold ${done ? "bg-ok-tint text-ok-ink" : "on-brand bg-brand text-surface active:bg-brand-deep"}`}
+                className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body font-bold text-ink active:bg-brand-tint"
               >
-                {done ? "처리 완료됨" : "처리 완료"}
+                직접 처리했어요
               </button>
-            </>
+            )
+          )}
+          {done && d.action_status !== "done" && (
+            <span className="flex min-h-tap items-center rounded-control bg-ok-tint px-4 text-g-body font-bold text-ok-ink">직접 처리함</span>
           )}
         </div>
       )}
