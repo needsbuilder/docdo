@@ -58,6 +58,8 @@ function abortSummary(reason: string): string {
 }
 const HEADED = process.env.AGENT_HEADED === "1";
 const POLL_MS = 3000;
+// 보호자 차례 상한. 워커는 한 번에 한 건이라, 여기서 오래 기다리면 그 뒤 승인이 전부 queued 에 갇힌다(13:22 실측).
+const HUMAN_WAIT_MIN = 5;
 const LIVE_MS = 700;
 if (!SECRET) throw new Error("AGENT_SECRET 없음");
 
@@ -142,7 +144,7 @@ async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, 
     const { inputs: stale = [] } = (await r0.json().catch(() => ({}))) as { inputs?: AgentInput[] };
     if (stale.length) await docApi(doc, { consumed: stale.map((i) => i.id) });
   }
-  const deadline = Date.now() + 20 * 60_000;
+  const deadline = Date.now() + HUMAN_WAIT_MIN * 60_000;
   while (Date.now() < deadline) {
     const r = await docApi(doc, { consumed: [] });
     const { inputs = [] } = (await r.json().catch(() => ({}))) as { inputs?: AgentInput[] };
@@ -171,7 +173,7 @@ async function waitForHuman(page: Page, doc: Doc, reason: string, hint: string, 
     }
     await new Promise((r) => setTimeout(r, 150));
   }
-  throw new Error("보호자 응답 없이 20분이 지났습니다");
+  throw new Error(`보호자 응답 없이 ${HUMAN_WAIT_MIN}분이 지났습니다`);
 }
 
 const won = (n: number) => n.toLocaleString("ko-KR");
@@ -317,7 +319,16 @@ async function run(doc: Doc) {
       // 문서에서 읽은 글자는 프롬프트에 들어간다. 줄바꿈·길이를 자른다(문서발 인젝션 완화).
       const clean = (v: unknown, n: number) => (typeof v === "string" ? v.replace(/[\r\n\t"`]/g, " ").slice(0, n) : null);
       const issuer = clean(f.issuer, 40);
-      return await runLLM(page, doc, clean(label, 20) ?? "우편물", clean(epn, 30) ?? epn, amount, issuer, step, finish);
+      try {
+        return await runLLM(page, doc, clean(label, 20) ?? "우편물", clean(epn, 30) ?? epn, amount, issuer, step, finish);
+      } catch (e) {
+        // Solar 가 4xx/5xx(13:28 실측: Railway 에서 403 HTML — WAF/IP 차단으로 보임)면 시연 포털에 한해 고정 절차로 이어간다.
+        // 모델이 없어도 가드(금액 일치·인증은 사람)는 절차 안에 그대로 있다. 실제 사이트는 고정 절차가 없으니 그대로 실패.
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!/^solar \d{3}/.test(msg) || ADAPTER !== "demo") throw e;
+        await step("모델 응답 오류 — 고정 절차로 이어갑니다", msg.slice(0, 120));
+        await page.goto(`${BASE}/demo/giro`, { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+      }
     }
     if (ADAPTER === "giro") {
       await page.goto("https://www.giro.or.kr/nomember/agreeNoMemberProvision.do", { waitUntil: "domcontentloaded", timeout: 60000 });
