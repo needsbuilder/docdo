@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>독도 DocDo — JunctionX Korea 2026</title>
+<style>
+  @font-face { font-family: "KoddiUD"; src: url("../../public/fonts/koddi-400.woff2") format("woff2"); font-weight: 400; }
+  @font-face { font-family: "KoddiUD"; src: url("../../public/fonts/koddi-700.woff2") format("woff2"); font-weight: 700; }
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; }
+  body { font-family: "KoddiUD", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; color: #191f28; word-break: keep-all; }
+  .slide { width: 1280px; height: 720px; padding: 64px 80px; page-break-after: always; position: relative; display: flex; flex-direction: column; background: #fff; overflow: hidden; }
+  .slide:last-child { page-break-after: auto; }
+  .kicker { font-size: 18px; font-weight: 700; color: #1b64da; letter-spacing: .01em; margin: 0 0 10px; }
+  h1 { font-size: 56px; line-height: 1.2; margin: 0 0 14px; letter-spacing: -.01em; }
+  h2 { font-size: 42px; line-height: 1.25; margin: 0 0 24px; letter-spacing: -.01em; }
+  p, li { font-size: 22px; line-height: 1.6; margin: 0; }
+  .sub { color: #6b7684; }
+  .muted { color: #6b7684; font-size: 18px; }
+  .foot { position: absolute; left: 80px; right: 80px; bottom: 28px; display: flex; justify-content: space-between; font-size: 15px; color: #8b95a1; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand img.mark { height: 44px; }
+  .brand img.word { height: 26px; }
+  .grid { display: grid; gap: 20px; }
+  .card { background: #f9fafb; border-radius: 20px; padding: 22px 26px; }
+  .card.white { background: #fff; border: 1.5px solid #e5e8eb; }
+  .card h3 { font-size: 22px; margin: 0 0 8px; color: #123a69; }
+  .card p, .card li { font-size: 19px; line-height: 1.55; }
+  .pill { display: inline-block; border-radius: 999px; padding: 4px 14px; font-size: 17px; font-weight: 700; }
+  .pill.blue { background: #eaf4ff; color: #1b64da; }
+  .pill.ok { background: #e8faf4; color: #067a56; }
+  .pill.warn { background: #fff6e5; color: #8a5a00; }
+  .pill.danger { background: #fff0f1; color: #c8303c; }
+  .flow { display: flex; align-items: stretch; gap: 10px; margin-top: 8px; }
+  .flow .step { flex: 1; background: #f9fafb; border-radius: 16px; padding: 16px 14px; text-align: center; }
+  .flow .step b { display: block; font-size: 20px; color: #123a69; margin-bottom: 6px; }
+  .flow .step span { font-size: 16px; color: #6b7684; line-height: 1.45; display: block; }
+  .flow .step.up { background: #eaf4ff; }
+  .flow .step.human { background: #fff6e5; }
+  .flow .arrow { align-self: center; color: #c9d1db; font-size: 26px; }
+  .big { font-size: 64px; font-weight: 700; color: #123a69; line-height: 1.1; letter-spacing: -.01em; }
+  table { border-collapse: collapse; width: 100%; font-size: 19px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e8eb; vertical-align: top; }
+  th { color: #6b7684; font-weight: 700; width: 200px; }
+  ul { padding-left: 26px; margin: 0; }
+  li + li { margin-top: 8px; }
+  .nums .num { font-size: 34px; white-space: nowrap; }
+  .nums .card { padding: 18px 20px; }
+  .num { font-size: 44px; font-weight: 700; color: #123a69; line-height: 1.1; }
+  .cover { background: linear-gradient(135deg, #123a69 0%, #1b64da 100%); color: #fff; justify-content: center; }
+  .cover h1 { font-size: 72px; color: #fff; }
+  .cover p { color: rgba(255,255,255,.85); font-size: 26px; }
+  .cover .kicker { color: rgba(255,255,255,.75); }
+  .logo-box { width: 96px; height: 96px; border-radius: 24px; background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 28px; }
+  .logo-box img { height: 64px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .callout { border-left: 6px solid #3182f6; padding: 6px 0 6px 18px; font-size: 24px; font-weight: 700; color: #123a69; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<!-- 1 표지 -->
+<section class="slide cover">
+  <div class="logo-box"><img src="../../public/brand/logo-mark.png" alt=""></div>
+  <p class="kicker">JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch</p>
+  <h1>독도 DocDo</h1>
+  <p>어르신은 우편물을 찍어 <b>듣고</b>, 자녀는 공식 정보와 대조한 결과를 보고 <b>승인</b>하고,<br>에이전트가 <b>처리</b>합니다 — 인증은 사람이 합니다.</p>
+  <div class="foot" style="color:rgba(255,255,255,.7)"><span>docdo.vercel.app</span><span>github.com/needsbuilder/docdo</span></div>
+</section>
+
+<!-- 2 문제 -->
+<section class="slide">
+  <p class="kicker">문제</p>
+  <h2>우편물은 읽기의 문제가 아니라 <u>판단</u>의 문제입니다</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="card"><h3>무엇이 왔나</h3><p>고지서·안내문·독촉장·광고가 같은 봉투로 옵니다. 글자는 읽어도 <b>종류</b>를 모릅니다.</p></div>
+    <div class="card"><h3>진짜인가</h3><p>공공기관을 흉내 낸 문서는 <b>금액·기한은 그대로</b> 두고 전화번호·계좌만 바꿉니다.</p></div>
+    <div class="card"><h3>무엇을 해야 하나</h3><p>"내면 된다"는 말 한마디가 <b>돈이 빠져나가는 경로</b>가 됩니다. 혼자 정하게 두면 안 됩니다.</p></div>
+  </div>
+  <p class="callout">그래서 어르신에게는 이해·안심·위험 경고만 주고, 행동은 전부 자녀 화면으로 옮깁니다.</p>
+  <div class="foot"><span>독도 DocDo</span><span>2 / 10</span></div>
+</section>
+
+<!-- 3 흐름 -->
+<section class="slide">
+  <p class="kicker">흐름</p>
+  <h2>사진 한 장 → 읽기 → 대조 → 자녀 승인 → 에이전트 처리</h2>
+  <div class="flow">
+    <div class="step"><b>어르신 촬영</b><span>홈 화면 아이콘<br>링크 한 번으로 연결</span></div>
+    <div class="arrow">→</div>
+    <div class="step up"><b>Upstage Studio</b><span>Parse → Classify<br>→ Extract 분기</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>검증 계층</b><span>공식 레지스트리 대조<br>R1·R3·R4·R5·R6</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>두 화면</b><span>어르신: 큰 글씨·음성<br>자녀: 판정·근거·할 일</span></div>
+    <div class="arrow">→</div>
+    <div class="step up"><b>Solar 에이전트</b><span>포털 조회 · 금액 일치<br>할 때만 납부</span></div>
+    <div class="arrow">→</div>
+    <div class="step human"><b>보호자 차례</b><span>인증은 사람이<br>폰에서 직접</span></div>
+  </div>
+  <div class="two" style="margin-top:26px">
+    <div class="card white"><h3>어르신 화면에 없는 것</h3><p>계좌번호 · 납부 버튼 · 결제 링크 · 신청 버튼. 전화가 걸리는 번호는 <b>레지스트리의 공식 번호 하나</b>뿐입니다.</p></div>
+    <div class="card white"><h3>끝나면</h3><p>어르신 화면이 스스로 "처리됐어요 · 납부확인번호"로 바뀝니다. 닫힌 루프입니다.</p></div>
+  </div>
+  <div class="foot"><span>독도 DocDo</span><span>3 / 10</span></div>
+</section>
+
+<!-- 4 Upstage -->
+<section class="slide">
+  <p class="kicker">Upstage 기술</p>
+  <h2>Studio 에이전트가 문서 처리의 핵심, Solar Pro 4 가 행동의 두뇌</h2>
+  <div class="two">
+    <div class="card"><h3>Studio 에이전트 (Parse → Classify → Extract ×2)</h3>
+      <ul>
+        <li>Classify 가 <b>pay / apply / info / ad</b> 로 가르고, 납부·신청 문서만 Extract 로 분기합니다. 광고는 의도적 미매핑.</li>
+        <li><code>include: ["all"]</code> 로 <b>필드별 confidence·좌표</b>를 받습니다. <code>low</code> 인 값은 음성으로도 화면으로도 읽지 않습니다.</li>
+        <li>Classify 의 범주가 <code>low</code> 여도 점수 ≥0.9 면 추출을 계속하고 대조로 판정합니다(법원 결정문 케이스).</li>
+      </ul></div>
+    <div class="card"><h3>Solar Pro 4 브라우저 에이전트</h3>
+      <ul>
+        <li>페이지의 <b>접근성 트리</b>(버튼·입력·링크 + 참조 번호)를 읽고 <code>click / type / press / scroll / wait_human / done / abort</code> 중 <b>한 번에 하나</b>만 결정합니다.</li>
+        <li>픽셀 computer-use 가 아닙니다. 이미지를 받지 않고 <b>구조를 읽습니다</b>.</li>
+        <li>가드레일은 코드에 있습니다: 비밀번호·인증 문구가 보이면 모델을 부르지 않고 사람에게, 납부 버튼은 문서 금액이 보일 때만, 허용 도메인 밖 차단.</li>
+      </ul></div>
+  </div>
+  <p class="muted" style="margin-top:18px">실측 함정도 기록했습니다 — 초안 config 는 API 에서 안 보임 · 미설정 노드가 있으면 저장 거부 · <code>["last"]</code> 면 confidence 가 사라짐 · 미매핑 타입은 Extract 단계가 응답에서 통째로 빠짐.</p>
+  <div class="foot"><span>독도 DocDo</span><span>4 / 10</span></div>
+</section>
+
+<!-- 5 안전 원칙 -->
+<section class="slide">
+  <p class="kicker">제품 안전 원칙 — 다른 모든 결정보다 우선</p>
+  <h2>어르신 화면은 돈으로 이어지지 않습니다</h2>
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr">
+    <div class="card"><div class="num">1</div><p>어르신 화면에 <b>금전 거래 경로 없음</b> — 계좌·납부 버튼·결제 링크</p></div>
+    <div class="card"><div class="num">2</div><p><b>확신하지 못한 값은 읽지 않음</b> — Extract <code>low</code>·결손 필드</p></div>
+    <div class="card"><div class="num">3</div><p><b>지시하지 않음</b> — "내시면 됩니다" ✗ → "문서에 적힌 금액은 …" ✓</p></div>
+    <div class="card"><div class="num">4</div><p><b>폐기를 지시하지 않음</b> — "버리셔도 됩니다" ✗</p></div>
+    <div class="card"><div class="num">5</div><p>문서에서 읽은 연락처·링크는 <b>실행 경로가 되지 못함</b> — tel: 은 공식 값만</p></div>
+  </div>
+  <div class="two" style="margin-top:24px">
+    <div class="card white"><h3>표현 규칙</h3><p><span class="pill ok">확인된 불일치 없음</span> 은 "정상·진짜·안전"이 아닙니다. 화면에도 <b>무엇을 몇 개 확인했고 무엇을 안 했는지</b>를 보여줍니다.</p></div>
+    <div class="card white"><h3>에이전트 규칙</h3><p>비밀번호·인증서는 절대 입력하지 않음 · 금액이 문서와 다르면 <b>abort</b> · 같은 화면 3회·25단계 초과 중단 · <code>done</code> 은 납부 클릭 후만</p></div>
+  </div>
+  <div class="foot"><span>독도 DocDo</span><span>5 / 10</span></div>
+</section>
+
+<!-- 6 검증 계층 -->
+<section class="slide">
+  <p class="kicker">검증 계층 — Studio 출력 뒤에 우리가 판정하는 것</p>
+  <h2>"AI 가 가짜를 알아본다"가 아니라, 공식 정보와 <u>대조</u>합니다</h2>
+  <div class="two">
+    <div>
+      <table>
+        <tr><th>R1 발신 정합성</th><td>기관명·문의전화·안내 주소를 공식 레지스트리와 대조. 부서 직통번호는 국번 대역으로 인정</td></tr>
+        <tr><th>R3 신뢰도 게이트</th><td>핵심 필드가 <code>low</code>·결손이면 숫자를 읽지 않음</td></tr>
+        <tr><th>R4 개인 휴대전화</th><td>공공기관 고지서의 상담 번호가 010 이면 확정 위험</td></tr>
+        <tr><th>R5 분류 신뢰도</th><td>문서 종류를 확신 못 하면 사람에게</td></tr>
+        <tr><th>R6 예금주 정합성</th><td>가상계좌 예금주가 발급기관명과 완전히 일치해야 함</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>통제 실험 — 두 필드만 바꿨다</h3>
+      <table>
+        <tr><th>필드</th><td>통제본</td><td>변조본</td></tr>
+        <tr><th>문의전화</th><td>1577-1000</td><td><b>1588-9876</b></td></tr>
+        <tr><th>안내 주소</th><td>nhis.or.kr</td><td><b>nhis-pay.co.kr</b></td></tr>
+        <tr><th>금액·기한·기관</th><td colspan="2">동일 — Extract 는 둘 다 정확히 읽음</td></tr>
+        <tr><th>판정</th><td><span class="pill ok">clear 2/2</span></td><td><span class="pill danger">mismatch 0/2</span></td></tr>
+      </table>
+      <p class="muted" style="margin-top:10px">판정을 가른 건 모델이 아니라 레지스트리 대조였습니다.</p>
+    </div>
+  </div>
+  <div class="foot"><span>독도 DocDo</span><span>6 / 10</span></div>
+</section>
+
+<!-- 7 숫자 -->
+<section class="slide">
+  <p class="kicker">실측 — 합성 시나리오 회귀 결과</p>
+  <h2>숫자는 관측 범위로 말합니다</h2>
+  <div class="grid nums" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card"><div class="num">12 / 12</div><p>팀 합성 fixture 12장 판정 일치</p></div>
+    <div class="card"><div class="num">12 / 12 · 11 / 12</div><p>촬영 열화 시뮬레이션 mid · hard<br><span class="muted">hard 의 1건은 <code>low</code> → 사람에게 넘김(설계대로)</span></p></div>
+    <div class="card"><div class="num">296</div><p>회귀 시험 — 공격·결손 입력 19종, 리뷰에서 재현된 우회 경로 고정</p></div>
+    <div class="card"><div class="num">4.1~26.2초</div><p>처리시간 관측 범위 (n=12). P95 가 아닙니다</p></div>
+  </div>
+  <div class="two" style="margin-top:18px">
+    <div class="card white"><h3>오늘 인쇄본 3장 (실촬영)</h3><p><span class="pill ok">부산상하수도</span> 확인된 불일치 없음 · <span class="pill warn">서울고수도(가짜)</span> 사칭 의심 · <span class="pill warn">부산지법 지급명령</span> 확인 필요</p></div>
+    <div class="card white"><h3>레지스트리</h3><p>8개 기관 시범 적용(건보·복지부·연금·한전·포항시·부산지법·서울아리수·부산상하수도[시연용]). 민간 사업자는 대조 대상이 아닙니다.</p></div>
+  </div>
+  <p class="callout" style="margin-top:14px">열화되면 조용히 틀리는 게 아니라 사람에게 넘깁니다.</p>
+  <div class="foot"><span>독도 DocDo</span><span>7 / 10</span></div>
+</section>
+
+<!-- 8 에이전트 실행 -->
+<section class="slide">
+  <p class="kicker">승인하면 독도가 처리합니다 — 인증은 사람이</p>
+  <h2>보호자 차례: 실시간 화면을 폰에서 직접 누릅니다</h2>
+  <div class="flow">
+    <div class="step"><b>① 승인</b><span>자녀 카드<br>[납부 처리 승인 · 12,500원]</span></div>
+    <div class="arrow">→</div>
+    <div class="step up"><b>② 조회</b><span>Railway 워커의 Chromium<br>Solar 가 구조를 읽고 조작</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>③ 금액 가드</b><span>포털 금액 = 문서 금액<br>일 때만 진행</span></div>
+    <div class="arrow">→</div>
+    <div class="step human"><b>④ 보호자 차례</b><span>보안 키패드를<br>폰에서 직접 터치</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>⑤ 완료</b><span>영수증 → 어르신 화면<br>"처리됐어요"</span></div>
+  </div>
+  <div class="two" style="margin-top:26px">
+    <div class="card white"><h3>왜 사람에게 넘기나</h3><p>인증·비밀번호·약관 동의는 법적 행위입니다. 에이전트는 그 화면을 <b>보는 즉시 멈추고</b>, 보호자가 마친 뒤 [이어서 하기]로 재개합니다. 원격 입력은 저장하지 않고 끝나면 비웁니다.</p></div>
+    <div class="card white"><h3>시연 포털</h3><p>실제 인터넷지로는 비회원도 금융인증서가 필수라 조회조차 인증 뒤에 있습니다. 그래서 같은 흐름의 <b>시연용 포털</b>에서 처리하고, [실제 인터넷지로에서]는 인증 벽에서 보호자에게 넘어오는 것까지 보여줍니다. 실기관 연동은 원장을 기관 API 로 바꾸는 일이지 에이전트를 바꾸는 일이 아닙니다.</p></div>
+  </div>
+  <div class="foot"><span>독도 DocDo</span><span>8 / 10</span></div>
+</section>
+
+<!-- 9 한계와 다음 -->
+<section class="slide">
+  <p class="kicker">한계 — 먼저 밝힙니다</p>
+  <h2>이 결과가 말하지 않는 것</h2>
+  <div class="two">
+    <div class="card"><h3>탐지하지 못하는 것</h3>
+      <ul>
+        <li><b>공식 연락처를 그대로 복사한 사칭</b> — 대조할 값이 전부 진짜라서 이 방식으로는 못 잡습니다.</li>
+        <li>하위 조직 표기(예: 국민연금공단 포항지사)는 구조만으로 진위를 가를 수 없어 <b>둘 다 자녀 확인</b>으로 보냅니다. 오탐을 감수하고 미탐을 줄였습니다.</li>
+        <li>계좌의 실제 명의는 조회하지 않습니다(권한 없음). 화면에 "확인하지 않음"으로 표시합니다.</li>
+      </ul></div>
+    <div class="card"><h3>다음</h3>
+      <ul>
+        <li>보호자 <b>웹 푸시</b>(우편물 도착·보호자 차례) — 홈 화면 설치 PWA 기준</li>
+        <li>레지스트리 확장 — 기관 공개 데이터 연동, 지자체 국번 대역</li>
+        <li>납부 포털 <b>실기관 API</b> 연동 — 에이전트 코드는 그대로</li>
+        <li>Extract 좌표로 <b>원문의 해당 영역</b>을 보호자에게 보여주기(값을 읽어주는 대신 원문을 보여줌)</li>
+      </ul></div>
+  </div>
+  <div class="foot"><span>독도 DocDo</span><span>9 / 10</span></div>
+</section>
+
+<!-- 10 마무리 -->
+<section class="slide cover">
+  <div class="logo-box"><img src="../../public/brand/logo-mark.png" alt=""></div>
+  <p class="kicker">독도 — 한국 땅 독도, 그리고 doc do: 문서가 행동한다</p>
+  <h1>어르신은 듣고, 자녀는 보고, 독도가 처리합니다.</h1>
+  <p>Demo <b>docdo.vercel.app</b> · Source <b>github.com/needsbuilder/docdo</b><br>팀 Reporch · Upstage Studio 트랙</p>
+  <div class="foot" style="color:rgba(255,255,255,.7)"><span>전체 소스 공개 · 오픈소스 목록은 README</span><span>10 / 10</span></div>
+</section>
+
+</body>
+</html>
