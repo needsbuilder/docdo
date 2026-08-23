@@ -179,6 +179,15 @@ export function buildPhrases(r: VerifyResult): Phrases {
     };
   }
 
+  // R7 — 사칭 의심(확정 아님). "못 읽었다"가 아니라 "확인이 필요하다"로 말한다. 단정("가짜예요")도, 폐기 지시도 하지 않는다.
+  if ((r.reasons ?? []).some((x) => x.rule === "R7")) {
+    return {
+      docLabel,
+      screenLines: ["확인이 필요한 우편물이에요", "여기 적힌 번호로 전화하지 마세요", "자녀분께 보냈어요"],
+      speech: "어르신, 이 우편물은 확인이 필요해요. 여기 적힌 번호로는 전화하지 마시고, 자녀분께 먼저 여쭤보세요. 자녀분께 보내드렸어요.",
+    };
+  }
+
   if (r.verdict === "needs_human" || r.verdict === "unknown_issuer") {
     return {
       docLabel,

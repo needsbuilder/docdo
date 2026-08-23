@@ -20,6 +20,7 @@ export type ElderDoc = {
   result: {
     verdict: VerifyResult["verdict"];
     speechSuppressed: boolean;
+    suspected?: boolean;
     // 레지스트리 값. 문서에서 읽은 값이 아니다.
     safeContact?: VerifyResult["safeContact"];
     // mismatch 일 때 종류별 문구를 고르려면 kind 만 있으면 된다.
@@ -43,6 +44,8 @@ export function toElderDoc(row: DocRow & { error?: string }): ElderDoc {
       ? {
           verdict: r.verdict,
           speechSuppressed: r.speechSuppressed === true,
+          // 사칭 의심(R7). 확정이 아니므로 빨강이 아니라 주의 톤으로 그린다.
+          suspected: (r.reasons ?? []).some((x) => x.rule === "R7"),
           safeContact: r.safeContact,
           failedKinds: (r.checks ?? [])
             .filter((c: Check) => c.ok === false && c.kind)

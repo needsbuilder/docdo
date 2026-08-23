@@ -112,6 +112,8 @@ export default function ElderResult({
   }
 
   const danger = r.verdict === "mismatch";
+  // 사칭 의심(R7)은 확정이 아니다 — 빨간 띠 대신 주의 카드. "못 읽었다"가 아니라 "확인이 필요하다".
+  const caution = !danger && r.suspected === true;
   const safePhone = r.safeContact?.phones?.[0];
   const rows = p.screenLines.map(rowOf);
 
@@ -140,13 +142,13 @@ export default function ElderResult({
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 pb-10">
       {/* 경고면 띠 전체가 빨강이 된다. 색·위치·글자가 같은 말을 한다. */}
-      <AppBar size="lg" tone={danger ? "danger" : "band"} title={danger ? "확인이 필요한 우편물" : "문서 내용"} onBack={leave} />
+      <AppBar size="lg" tone={danger ? "danger" : "band"} title={danger || caution ? "확인이 필요한 우편물" : "문서 내용"} onBack={leave} />
 
       <div className="enter-once flex flex-col gap-4 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className={`text-title ${danger ? "text-danger-ink" : "text-ink"}`}>{danger ? "잠깐만요" : p.docLabel}</h2>
-            <p className="mt-1 text-note text-ink-soft">{danger ? "공식 정보와 다른 내용이 있어요" : "오늘 촬영 · 읽기 완료"}</p>
+            <h2 className={`text-title ${danger ? "text-danger-ink" : caution ? "text-warn-ink" : "text-ink"}`}>{danger ? "잠깐만요" : caution ? "잠깐만요" : p.docLabel}</h2>
+            <p className="mt-1 text-note text-ink-soft">{danger ? "공식 정보와 다른 내용이 있어요" : caution ? "자녀분이 확인하고 있어요" : "오늘 촬영 · 읽기 완료"}</p>
           </div>
           {preview && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -170,6 +172,29 @@ export default function ElderResult({
               <a
                 href={`tel:${safePhone}`}
                 className="press mt-5 flex min-h-tap-elder items-center justify-center gap-3 rounded-control bg-danger px-6 text-lead text-surface active:bg-danger-ink"
+              >
+                <Phone size={28} />
+                공식 번호로 전화 {safePhone}
+              </a>
+            )}
+            <p className="mt-4 text-note text-ink-soft">문서에 적힌 번호는 누를 수 없게 했습니다</p>
+          </section>
+        ) : caution ? (
+          <section role="status" className="rounded-sheet border-2 border-warn bg-warn-tint p-5">
+            <p className="flex items-start gap-3 text-lead text-ink">
+              <Warning size={32} className="mt-1 shrink-0 text-warn" />
+              <span>
+                {rows.map((row, i) => (
+                  <span key={i} className="block">
+                    {row.value}
+                  </span>
+                ))}
+              </span>
+            </p>
+            {safePhone && (
+              <a
+                href={`tel:${safePhone}`}
+                className="press mt-5 flex min-h-tap-elder items-center justify-center gap-3 rounded-control bg-surface px-6 text-lead text-warn-ink active:bg-warn/20"
               >
                 <Phone size={28} />
                 공식 번호로 전화 {safePhone}
