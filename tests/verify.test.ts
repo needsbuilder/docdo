@@ -263,12 +263,12 @@ describe("R7 — 사칭 의심(미등록 + 공공요금 명칭 + 민간법인/�
     const r = verify(job({ fields: { ...OK, issuer: "주식회사 케이티", contact_phone: "100", info_url: "www.kt.com", payee_name: "" } }));
     expect(r.verdict).toBe("unknown_issuer");
   });
-  it("부산광역시 상하수도 사업본부 — 등록 기관이지만 문서 URL 이 공식 도메인이 아니면 mismatch (합성 인쇄본 함정)", () => {
+  it("부산광역시 상하수도 사업본부 — 시연용(demo) 등록 기관. 인쇄본 값과 일치하면 clear", () => {
     const r = verify(
       job({ fields: { ...OK, issuer: "부산광역시 상하수도 사업본부", doc_title: "상하수도요금 독촉 고지서", contact_phone: "051-123-4567", info_url: "www.busan-water.kr", payee_name: "부산광역시 상하수도" } }),
     );
     expect(r.issuerId).toBe("busan_water");
-    expect(r.verdict).toBe("mismatch");
+    expect(r.verdict).toBe("clear");
   });
   it("부산지방법원 — 공식 번호·도메인이면 clear", () => {
     const r = verify(

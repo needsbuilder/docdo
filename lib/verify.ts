@@ -287,27 +287,27 @@ const sameValue = (a: unknown, b: unknown) =>
 const PUBLIC_WORDS = /상하수도|상수도|수도요금|수도사업|건강보험|국민연금|전기요금|지방세|국세|세무서|법원|우체국|공단|공사|사업본부|시청|구청|군청/;
 const PRIVATE_WORDS = /주식회사|㈜|\(주\)|유한회사|상사$/;
 
-/** 2글자 한글 토큰으로 등록 기관과 겹치는지. "서울고수도요금주식회사" ↔ "서울특별시 상수도사업본부" = 서울·수도. */
+// 업종 일반어. 이것만 겹치는 건 "비슷한 이름"이 아니다 — 부산 상수도와 서울 상수도는 서로 사칭이 아니다.
+const GENERIC_TOKENS = new Set(["상수", "수도", "하수", "요금", "사업", "업본", "본부", "공단", "공사", "보험", "연금", "건강", "국민", "시청", "구청", "법원", "지방", "광역", "역시", "특별", "별시", "전력", "한국", "주식", "식회", "회사"]);
+
+/** 2글자 한글 토큰으로 등록 기관과 겹치는지. 고유어(지명·고유명) 1개 이상 + 일반어 1개 이상이어야 "비슷한 이름". */
 function lookalikeIssuer(name: string): Issuer | null {
   const toks = new Set<string>();
   const h = name.replace(/[^가-힣]/g, "");
   for (let i = 0; i + 2 <= h.length; i++) toks.add(h.slice(i, i + 2));
   let best: { issuer: Issuer; n: number } | null = null;
   for (const iss of REGISTRY.issuers) {
-    const names = [iss.display_name, ...iss.aliases];
-    let n = 0;
     const seen = new Set<string>();
-    for (const nm of names) {
+    for (const nm of [iss.display_name, ...iss.aliases]) {
       const hh = nm.replace(/[^가-힣]/g, "");
       for (let i = 0; i + 2 <= hh.length; i++) {
         const t = hh.slice(i, i + 2);
-        if (toks.has(t) && !seen.has(t)) {
-          seen.add(t);
-          n++;
-        }
+        if (toks.has(t)) seen.add(t);
       }
     }
-    if (n >= 2 && (!best || n > best.n)) best = { issuer: iss, n };
+    const distinct = [...seen].filter((t) => !GENERIC_TOKENS.has(t)).length;
+    const generic = seen.size - distinct;
+    if (distinct >= 1 && generic >= 1 && (!best || seen.size > best.n)) best = { issuer: iss, n: seen.size };
   }
   return best?.issuer ?? null;
 }
