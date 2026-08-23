@@ -41,7 +41,9 @@ export default function AgentTrace({
   onInput?: (input: Record<string, unknown>) => void;
 }) {
   const [openShot, setOpenShot] = useState<number | null>(null);
+  const [showSteps, setShowSteps] = useState(false);
   const [text, setText] = useState("");
+  const last = trace[trace.length - 1];
   const imgRef = useRef<HTMLImageElement>(null);
   const st = STATUS[status] ?? STATUS.queued;
   const active = status === "queued" || status === "running" || status === "waiting";
@@ -131,27 +133,47 @@ export default function AgentTrace({
         </button>
       )}
 
-      <ol className="mt-3 space-y-2">
-        {trace.map((s, i) => (
-          <li key={i} className="grid grid-cols-[4.5em_1fr] gap-x-2 text-g-body">
-            <span className="tabular-nums text-g-meta text-ink-soft">{hhmm(s.t)}</span>
-            <div className="min-w-0">
-              <p className="text-ink">{s.title}</p>
-              {s.detail && <p className="break-all text-g-meta text-ink-soft">{s.detail}</p>}
-              {s.shot && (
-                <button type="button" onClick={() => setOpenShot(openShot === i ? null : i)} className="mt-1 inline-flex items-center gap-1 text-g-meta font-bold text-brand">
-                  <CaretRight size={12} className={openShot === i ? "rotate-90" : ""} />
-                  화면 {openShot === i ? "닫기" : "보기"}
-                </button>
-              )}
-              {s.shot && openShot === i && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={s.shot} alt={`${s.title} 화면`} className="mt-2 w-full rounded-inner border border-line-soft" />
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
+      {/* 진행 중엔 현재 단계 한 줄만. 전체 과정은 펼쳐야 보인다 — 보호자가 로그를 읽을 이유가 없다. */}
+      {active && !waiting && last && (
+        <p className="mt-3 text-g-body text-ink">
+          <span className="mr-2 inline-block size-2 animate-pulse rounded-full bg-brand align-middle" />
+          {last.title}
+        </p>
+      )}
+      {trace.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setShowSteps((v) => !v)}
+          aria-expanded={showSteps}
+          className="press mt-3 -ml-1 inline-flex min-h-tap items-center gap-1 rounded-inner px-1 text-g-meta font-bold text-ink-soft active:bg-brand-tint"
+        >
+          <CaretRight size={12} className={showSteps ? "rotate-90" : ""} />
+          과정 {trace.length}단계 {showSteps ? "접기" : "보기"}
+        </button>
+      )}
+      {showSteps && (
+        <ol className="mt-2 space-y-2 border-t border-line-soft pt-2">
+          {trace.map((s, i) => (
+            <li key={i} className="grid grid-cols-[4.5em_1fr] gap-x-2 text-g-meta">
+              <span className="tabular-nums text-ink-soft">{hhmm(s.t)}</span>
+              <div className="min-w-0">
+                <p className="text-ink">{s.title}</p>
+                {s.detail && <p className="break-all text-ink-soft">{s.detail}</p>}
+                {s.shot && (
+                  <button type="button" onClick={() => setOpenShot(openShot === i ? null : i)} className="mt-0.5 inline-flex items-center gap-1 font-bold text-brand">
+                    <CaretRight size={12} className={openShot === i ? "rotate-90" : ""} />
+                    화면 {openShot === i ? "닫기" : "보기"}
+                  </button>
+                )}
+                {s.shot && openShot === i && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={s.shot} alt={`${s.title} 화면`} className="mt-2 w-full rounded-inner border border-line-soft" />
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
       {result && (
         <p className={`mt-3 flex items-start gap-2 text-g-body font-bold ${status === "done" ? "text-ok-ink" : status === "failed" ? "text-danger-ink" : "text-warn-ink"}`}>
           {status === "done" ? <CheckCircle size={20} className="mt-0.5 shrink-0" /> : <WarningCircle size={20} className="mt-0.5 shrink-0" />}
