@@ -46,11 +46,11 @@ Let me show you.
 
 **[Live demo, 2 min]**
 
-(Senior's phone) I'll photograph a Pohang city resident tax bill. While it uploads, the photo stays on screen. It's saying: this is the paper I'm reading.
+(Senior's phone) I'll photograph a National Health Insurance bill. This one is genuine. While it uploads, the photo stays on screen. It's saying: this is the paper I'm reading.
 
 (Result, let the voice play 2 seconds) It reads only the amount and the due date. No account number, no pay button, and any value it isn't sure of, it doesn't read.
 
-(Child's phone) This is what the child sees. "No verified mismatch", the amount, the due date, what to do, and the evidence: three of three official checks passed. One thing matters here. This doesn't mean "genuine". It means nothing we checked disagreed. Pohang city, by the way, is already in our registry.
+(Child's phone) This is what the child sees. "No verified mismatch", the amount, the due date, what to do, and the evidence: three of three official checks passed. One thing matters here. This doesn't mean "genuine". It means nothing we checked disagreed. The National Health Insurance Service, by the way, is in our registry.
 
 (Approve) When I approve, a worker on our server opens a real browser and goes to the payment portal. It looks up the bill, checks the amount against the document, picks a payment method.
 
@@ -58,7 +58,7 @@ Let me show you.
 
 (Done) When payment completes, the senior's screen updates itself: "Handled." The loop closes.
 
-(If time) One more. This is a fake bill we made, "Seoul Water Fee Co., Ltd." The senior's screen doesn't read the amount at all. It says "this letter needs checking, don't call the number printed here." The child gets the suspected-impersonation reasons.
+Second document. This is a fake water bill we made, "Seoul Water Fee Co., Ltd." The senior's screen doesn't read the amount at all. It says "this letter needs checking, don't call the number printed here." The child gets the suspected-impersonation reasons.
 
 **[5 Upstage]**
 
