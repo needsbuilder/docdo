@@ -24,10 +24,10 @@ function rowOf(line: string): { label: string | null; value: string } {
 }
 
 type StepTone = "done" | "now" | "wait";
-const STEP_TONE: Record<StepTone, { circle: string; chip: string; label: string }> = {
-  done: { circle: "bg-ok-tint text-ok", chip: "bg-ok-tint text-ok-ink", label: "완료" },
-  now: { circle: "bg-brand-tint text-brand-deep", chip: "bg-brand-tint text-brand-deep", label: "지금" },
-  wait: { circle: "bg-well text-ink-soft", chip: "bg-well text-ink-soft", label: "다음" },
+const STEP_TONE: Record<StepTone, { circle: string }> = {
+  done: { circle: "bg-ok-tint text-ok" },
+  now: { circle: "bg-brand-tint text-brand-deep" },
+  wait: { circle: "bg-well text-ink-soft" },
 };
 
 export default function ElderResult({
@@ -195,8 +195,8 @@ export default function ElderResult({
             <Volume size={30} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-lead text-ink">다시 들려드릴까요?</span>
-            <span className="block text-note text-ink-soft">누르면 처음부터 다시 읽어요</span>
+            <span className="block text-lead text-ink">다시 듣기</span>
+            <span className="block text-note text-ink-soft">처음부터 다시 읽어드려요</span>
           </span>
           <span className="shrink-0 rounded-chip bg-surface px-4 py-2 text-body font-bold text-brand-deep">재생</span>
         </button>
@@ -233,7 +233,6 @@ export default function ElderResult({
                     <span className={`block text-body font-bold ${s.tone === "wait" ? "text-ink-mid" : "text-ink"}`}>{s.title}</span>
                     <span className="block text-note text-ink-soft">{s.desc}</span>
                   </span>
-                  <span className={`shrink-0 rounded-chip px-3 py-1 text-g-meta font-bold ${t.chip}`}>{t.label}</span>
                 </li>
               );
             })}
