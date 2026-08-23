@@ -123,6 +123,17 @@ function speakDevice(text: string, gen: number, rate = RATE): void {
 }
 
 export type SpeakOptions = { elderToken?: string | null; voice?: VoiceKey };
+export type SpeechEngine = "eleven" | "device";
+
+// 어떤 엔진이 읽었는지 화면에 알린다. 폰에는 콘솔이 없다 — 폴백(기기 TTS)이 났는지 눈으로 알 수 있어야 한다.
+function announce(engine: SpeechEngine, reason?: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.dispatchEvent(new CustomEvent("docdo:speech", { detail: { engine, reason } }));
+  } catch {
+    /* 이벤트 실패는 음성과 무관 */
+  }
+}
 
 /** ElevenLabs 를 먼저 시도하고, 어떤 이유로든 안 되면 기기 TTS 로 같은 문장을 읽는다. */
 export function speak(text: string, opts: SpeakOptions = {}): void {
@@ -134,6 +145,7 @@ export function speak(text: string, opts: SpeakOptions = {}): void {
 
   const a = player();
   if (!a || !opts.elderToken) {
+    announce("device", "no-token");
     speakDevice(text, gen);
     return;
   }
@@ -146,14 +158,16 @@ export function speak(text: string, opts: SpeakOptions = {}): void {
         body: JSON.stringify({ text, voice: opts.voice ?? getVoice() }),
       });
       if (gen !== generation) return;
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) throw new Error(`서버 응답 ${res.status}`);
       const blob = await res.blob();
       if (gen !== generation) return;
       audioUrl = URL.createObjectURL(blob);
       a.src = audioUrl;
       await a.play();
-    } catch {
+      announce("eleven");
+    } catch (e) {
       if (gen !== generation) return;
+      announce("device", e instanceof Error ? `${e.name}: ${e.message}`.slice(0, 80) : String(e));
       speakDevice(text, gen);
     }
   })();

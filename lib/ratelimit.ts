@@ -23,7 +23,8 @@ export function clientKey(req: Request): string {
 
 export type RateResult = { ok: true } | { ok: false; retryAfterSec: number };
 
-export function takeToken(key: string, now = Date.now()): RateResult {
+/** max 는 키별 상한. 기본은 업로드 기준(6/분). 음성처럼 싸고 인증된 호출은 더 넉넉히 준다. */
+export function takeToken(key: string, now = Date.now(), max = MAX_PER_WINDOW): RateResult {
   // 오래된 키를 정리한다. Map 이 무한히 자라면 그 자체가 취약점이다.
   if (buckets.size > MAX_KEYS) {
     for (const [k, b] of buckets) if (b.resetAt <= now) buckets.delete(k);
@@ -35,7 +36,7 @@ export function takeToken(key: string, now = Date.now()): RateResult {
     buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
     return { ok: true };
   }
-  if (b.count >= MAX_PER_WINDOW) {
+  if (b.count >= max) {
     return { ok: false, retryAfterSec: Math.max(1, Math.ceil((b.resetAt - now) / 1000)) };
   }
   b.count++;

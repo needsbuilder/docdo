@@ -45,7 +45,18 @@ export default function ElderResult({
   const [cur, setCur] = useState<DocView>(doc);
   // 이 컴포넌트는 클라이언트에서만 마운트된다(판독 완료 후). 초기값을 저장소에서 바로 읽어도 된다.
   const [voice, setVoiceState] = useState<VoiceKey>(() => getVoice());
+  // 기기 TTS 로 폴백됐으면 한 줄로 알린다(이유 포함). 시연 중 "왜 남자 목소리가 아니지"를 화면에서 바로 읽는다.
+  const [fallback, setFallback] = useState<string | null>(null);
   const stoppedRef = useRef(false);
+
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ engine: string; reason?: string }>).detail;
+      setFallback(d?.engine === "device" ? (d.reason ?? "") : null);
+    };
+    window.addEventListener("docdo:speech", on);
+    return () => window.removeEventListener("docdo:speech", on);
+  }, []);
 
   function pickVoice(v: VoiceKey) {
     setVoice(v);
@@ -201,6 +212,11 @@ export default function ElderResult({
           </span>
           <span className="shrink-0 rounded-chip bg-surface px-4 py-2 text-body font-bold text-brand-deep">재생</span>
         </button>
+        {fallback !== null && (
+          <p className="rounded-inner bg-warn-tint px-4 py-2 text-g-meta text-warn-ink" aria-live="polite">
+            지금은 기기 목소리로 읽고 있어요{fallback ? ` (${fallback})` : ""}
+          </p>
+        )}
         {/* 목소리 고르기. 누르면 그 목소리로 바로 다시 읽는다 — 설정 화면을 따로 두지 않는다. */}
         <div className="flex gap-2" role="group" aria-label="목소리">
           {(["m", "f"] as const).map((v) => (

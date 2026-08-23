@@ -19,6 +19,7 @@ type VoiceKey = keyof typeof VOICES;
 const MODEL = "eleven_multilingual_v2";
 const MAX_CHARS = 300;
 const CACHE_MAX = 64;
+const SPEECH_PER_MIN = 24;
 
 // 같은 문장은 다시 사지 않는다("다시 듣기"). 인스턴스 메모리 캐시 — 서버리스라 보장은 없다.
 const cache = new Map<string, Buffer>();
@@ -40,7 +41,9 @@ export async function POST(req: Request) {
   if (!key) return json({ error: "음성 서비스가 설정되지 않았습니다" }, 503);
   if (!(await authorized(req))) return json({ error: "없음" }, 404);
 
-  const gate = takeToken(`speech:${clientKey(req)}`);
+  // 결과 1회 + 다시 듣기 + 목소리 전환이 1분 안에 몰린다. 업로드 기준(6/분)이면 바로 429 → 기기 TTS(여성) 폴백이 된다.
+  // 인증된 호출이고 같은 문장은 캐시에서 나가므로 넉넉히 준다.
+  const gate = takeToken(`speech:${clientKey(req)}`, Date.now(), SPEECH_PER_MIN);
   if (!gate.ok) return json({ error: "잠시 후 다시 시도해 주세요" }, 429);
 
   const body = (await req.json().catch(() => null)) as { text?: unknown; voice?: unknown } | null;
