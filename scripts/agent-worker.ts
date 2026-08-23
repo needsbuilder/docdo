@@ -179,12 +179,20 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
   const site = SITES[chosen ?? ADAPTER] ?? SITES.demo;
   await page.goto(site.url, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForTimeout(800);
+  // 실제 기관 사이트는 데스크톱 폭(1200px+)이라 900px 화면에 안 들어온다. 축소해서 폰 실시간 화면에 전부 보이게.
+  if (site !== SITES.demo) {
+    const fit = "(()=>{document.documentElement.style.zoom='0.7';})()";
+    await page.evaluate(fit).catch(() => {});
+    page.on("framenavigated", (f) => { if (f === page.mainFrame()) page.evaluate(fit).catch(() => {}); });
+  }
   await step("사이트에 접속했습니다", site.url, await shot(page));
 
   let messages: Parameters<typeof decide>[1] = [{ role: "system", content: systemPrompt({ label, issuer, epn, amount, site: site.url }) }];
   let paid = false;
   let lastSig = "";
   let sameCount = 0;
+  // 보호자가 [이어서 하기]를 누른 직후 한 번은 인증 문구가 남아 있어도 모델이 움직이게 둔다(약관 동의 → 다음 화면).
+  let skipHumanOnce = false;
 
   for (let i = 1; i <= MAX_STEPS; i++) {
     if (!site.hosts.includes(new URL(page.url()).host)) {
@@ -198,11 +206,13 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
     if (sameCount >= 3) return finish("failed", "화면이 바뀌지 않아 멈췄습니다", { reason: "stuck" });
 
     // 가드 1: 사람 차례 신호가 보이면 모델을 부르지 않고 바로 넘긴다.
-    if (HUMAN.test(snap.text)) {
+    if (HUMAN.test(snap.text) && !skipHumanOnce) {
       await page.evaluate("window.scrollBy(0, 240)");
       await waitForHuman(page, doc, "본인 확인이 필요한 단계입니다", "비밀번호·인증은 독도가 입력하지 않습니다. 화면을 눌러 직접 마친 뒤 [이어서 하기]를 눌러 주세요.");
+      skipHumanOnce = true;
       continue;
     }
+    skipHumanOnce = false;
 
     const { action, messages: next } = await decide(UPSTAGE_KEY, messages, snap, i);
     messages = next;
@@ -212,6 +222,7 @@ async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: 
     if (action.kind === "abort") return finish("blocked", `에이전트가 멈췄습니다: ${action.reason}`, { reason: "abort" });
     if (action.kind === "wait_human") {
       await waitForHuman(page, doc, action.reason, action.hint);
+      skipHumanOnce = true;
       continue;
     }
     if (action.kind === "done") {
