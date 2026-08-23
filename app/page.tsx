@@ -51,7 +51,7 @@ export default function Home() {
         >
           <span className="min-w-0 flex-1">
             <span className="block text-lead leading-tight">부모님을 도와드려요</span>
-            <span className="mt-1 block text-note text-ink-soft">읽은 내용과 대조 결과를 확인해요</span>
+            <span className="mt-1 block text-note text-ink-soft">대조 결과까지 확인해요</span>
           </span>
           <CaretRight size={24} className="shrink-0 text-ink-soft" />
         </Link>
