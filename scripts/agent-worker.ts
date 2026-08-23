@@ -59,6 +59,7 @@ type AgentInput =
 type Doc = {
   id: string;
   action_run: string | null;
+  action_trace?: Array<{ title: string; detail?: string }>;
   verdict: string | null;
   result: { fields?: Record<string, unknown>; fieldConfidence?: Record<string, string>; safeContact?: { phones?: string[] } } | null;
   phrases: { docLabel: string } | null;
@@ -173,7 +174,9 @@ function amountConfirmed(text: string, amount: number, buttonName: string): bool
 async function runLLM(page: Page, doc: Doc, label: string, epn: string, amount: number, issuer: string | null,
   step: (title: string, detail?: string, s?: string) => Promise<unknown>,
   finish: (status: "done" | "blocked" | "failed", summary: string, extra?: Record<string, string>) => Promise<unknown>) {
-  const site = SITES[ADAPTER] ?? SITES.demo;
+  // 보호자가 승인할 때 고른 사이트가 우선. 없으면 환경변수.
+  const chosen = doc.action_trace?.[0]?.detail?.match(/site=(\w+)/)?.[1];
+  const site = SITES[chosen ?? ADAPTER] ?? SITES.demo;
   await page.goto(site.url, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForTimeout(800);
   await step("사이트에 접속했습니다", site.url, await shot(page));

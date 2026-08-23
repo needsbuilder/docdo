@@ -43,7 +43,7 @@ export default function GuardianCard({
 }: {
   doc: GuardianDoc;
   onMark: (id: string, resolution: "acknowledged" | "done") => void;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, site?: "demo" | "giro") => void;
   onInput: (id: string, input: Record<string, unknown>) => void;
 }) {
   const r = d.result;
@@ -165,13 +165,23 @@ export default function GuardianCard({
       {r && (
         <div className="mt-5 flex flex-wrap gap-2">
           {canApprove && !confirm && (
-            <button
-              type="button"
-              onClick={() => onApprove(d.id)}
-              className="press on-brand min-h-tap rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
-            >
-              {d.action_status === "none" ? `납부 처리 승인 · ${amount}` : "다시 처리 승인"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onApprove(d.id, "demo")}
+                className="press on-brand min-h-tap rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+              >
+                {d.action_status === "none" ? `납부 처리 승인 · ${amount}` : "다시 처리 승인"}
+              </button>
+              {/* 실제 인터넷지로. 합성 고지서라 조회는 안 되고, 인증서 단계에서 보호자에게 넘어오는 것까지 보여준다. */}
+              <button
+                type="button"
+                onClick={() => onApprove(d.id, "giro")}
+                className="press min-h-tap rounded-control border-2 border-line bg-surface px-4 text-g-body text-ink active:bg-brand-tint"
+              >
+                실제 인터넷지로에서
+              </button>
+            </>
           )}
           {agentActive && d.action_status !== "waiting" && (
             <span className="flex min-h-tap items-center text-g-body text-ink-mid">독도가 처리 중입니다…</span>

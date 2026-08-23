@@ -233,12 +233,12 @@ export default function Guardian() {
     }
   }
 
-  async function approve(id: string) {
+  async function approve(id: string, site: "demo" | "giro" = "demo") {
     try {
       const res = await fetch(`/api/documents/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "approve" }),
+        body: JSON.stringify({ action: "approve", site }),
       });
       if (res.status === 401) return setAuth("anon");
       if (!res.ok) return;

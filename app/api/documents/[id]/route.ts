@@ -114,8 +114,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   let resolution: unknown;
   let action: unknown;
   let input: unknown;
+  let site: unknown;
   try {
-    ({ resolution, action, input } = await req.json());
+    ({ resolution, action, input, site } = await req.json());
   } catch {
     return json({ error: "JSON 형식이 아닙니다" }, 400);
   }
@@ -142,7 +143,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const data = await db.update(id, {
       action_status: "queued",
       action_run: crypto.randomUUID(), // 새 리스. 옛 워커의 요청은 이 값이 달라 거부된다.
-      action_trace: [{ t: new Date().toISOString(), title: "보호자가 처리를 승인했습니다" }],
+      // 어디서 실행할지. demo = 시연 포털(끝까지) · giro = 실제 인터넷지로(인증서 단계에서 보호자에게 넘어감).
+      action_trace: [{ t: new Date().toISOString(), title: site === "giro" ? "보호자가 실제 인터넷지로에서 처리를 승인했습니다" : "보호자가 처리를 승인했습니다", detail: site === "giro" ? "site=giro" : "site=demo" }],
       action_result: null,
       action_live: null,
       action_wait: null,
