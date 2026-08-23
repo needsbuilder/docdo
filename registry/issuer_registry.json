@@ -1,7 +1,7 @@
 {
   "$schema_note": "공식 연락처·도메인 레지스트리. 값은 각 기관 공식 페이지에서 직접 확인한 것만 기록한다. 미등록 기관은 unknown_issuer.",
-  "version": "2026-08-23.1",
-  "coverage_note": "5개 기관 시범 적용(건보·복지부·연금·한전·포항시). 전국 공공기관을 지원하지 않으며, 민간 사업자(통신·금융)는 대조 대상이 아니다.",
+  "version": "2026-08-23.2",
+  "coverage_note": "8개 기관 시범 적용(건보·복지부·연금·한전·포항시·부산상수도·부산지법·서울아리수). 전국 공공기관을 지원하지 않으며, 민간 사업자(통신·금융)는 대조 대상이 아니다.",
   "issuers": [
     {
       "issuer_id": "nhis",
@@ -146,6 +146,97 @@
       ],
       "phone_prefixes": [
         "054-270"
+      ]
+    },
+    {
+      "issuer_id": "busan_water",
+      "display_name": "부산광역시 상수도사업본부",
+      "aliases": [
+        "부산광역시 상수도사업본부",
+        "부산광역시 상하수도사업본부",
+        "부산광역시 상하수도 사업본부",
+        "부산시 상수도사업본부",
+        "부산상수도사업본부",
+        "부산광역시 상수도"
+      ],
+      "official_hosts": [
+        "www.busan.go.kr",
+        "busan.go.kr"
+      ],
+      "official_phones": [
+        "121",
+        "051-120"
+      ],
+      "source_urls": [
+        "https://www.busan.go.kr/water/phone"
+      ],
+      "verified_at": "2026-08-23",
+      "doc_types": [
+        "상하수도요금",
+        "수도요금"
+      ],
+      "phone_prefixes": [
+        "051"
+      ]
+    },
+    {
+      "issuer_id": "busan_court",
+      "display_name": "부산지방법원",
+      "aliases": [
+        "부산지방법원",
+        "부산지법",
+        "부산지방법원 서부지원",
+        "부산지방법원 동부지원"
+      ],
+      "official_hosts": [
+        "busan.scourt.go.kr",
+        "scourt.go.kr",
+        "www.scourt.go.kr"
+      ],
+      "official_phones": [
+        "051-590-1114",
+        "1588-9100"
+      ],
+      "source_urls": [
+        "https://busan.scourt.go.kr/dept_info/new/DeptInfoList.work"
+      ],
+      "verified_at": "2026-08-23",
+      "doc_types": [
+        "소송서류",
+        "송달",
+        "과태료"
+      ],
+      "phone_prefixes": [
+        "051-590"
+      ]
+    },
+    {
+      "issuer_id": "seoul_arisu",
+      "display_name": "서울특별시 서울아리수본부",
+      "aliases": [
+        "서울아리수본부",
+        "서울특별시 서울아리수본부",
+        "서울특별시 상수도사업본부",
+        "서울시 상수도사업본부",
+        "서울시 수도사업본부"
+      ],
+      "official_hosts": [
+        "arisu.seoul.go.kr",
+        "seoul.go.kr"
+      ],
+      "official_phones": [
+        "120"
+      ],
+      "source_urls": [
+        "https://arisu.seoul.go.kr/"
+      ],
+      "verified_at": "2026-08-23",
+      "doc_types": [
+        "상수도요금",
+        "수도요금"
+      ],
+      "phone_prefixes": [
+        "02"
       ]
     }
   ],

@@ -138,7 +138,7 @@ describe("normPhone", () => {
 describe("verify — 공격·결손 입력 19종 (security_test.py 회귀)", () => {
   const cases: [string, unknown, string][] = [
     ["정상 통제본", job(), "clear"],
-    ["기관명 위조(가짜국민연금공단)", job({ fields: { ...OK, issuer: "가짜국민연금공단" } }), "unknown_issuer"],
+    ["기관명 위조(가짜국민연금공단) — R7 로 review", job({ fields: { ...OK, issuer: "가짜국민연금공단" } }), "review"],
     ["기관명 한 글자(공단)", job({ fields: { ...OK, issuer: "공단" } }), "unknown_issuer"],
     ["기관명 공백", job({ fields: { ...OK, issuer: " " } }), "unknown_issuer"],
     ["유사 기관명(포항시민회)", job({ fields: { ...OK, issuer: "포항시민회" } }), "unknown_issuer"],
@@ -209,10 +209,10 @@ describe("verify — 안전 연락처는 레지스트리 값만", () => {
     expect(r.safeContact?.source?.length).toBeGreaterThan(0);
     expect(r.safeContact?.verifiedAt).toBeTruthy();
   });
-  it("unknown_issuer 에는 안전 연락처가 없다", () => {
-    expect(
-      verify(job({ fields: { ...OK, issuer: "가짜국민연금공단" } })).safeContact,
-    ).toBeUndefined();
+  it("unknown_issuer 에는 안전 연락처가 없다 (유사 이름 사칭 의심은 예외 — 등록 기관의 공식 번호를 준다)", () => {
+    expect(verify(job({ fields: { ...OK, issuer: "주식회사 케이티", payee_name: "" } })).safeContact).toBeUndefined();
+    // 가짜국민연금공단은 R7 이 국민연금공단의 공식 번호를 안전 연락처로 준다 — 문서의 번호가 아니라 레지스트리 값이다.
+    expect(verify(job({ fields: { ...OK, issuer: "가짜국민연금공단" } })).safeContact?.phones).toContain("1355");
   });
 });
 
@@ -242,5 +242,39 @@ describe("verify — 방어적 입력", () => {
     const j = job();
     (j.output as { status: string }[])[2].status = "failed";
     expect(verify(j).verdict).toBe("failed");
+  });
+});
+
+describe("R7 — 사칭 의심(미등록 + 공공요금 명칭 + 민간법인/유사 이름)", () => {
+  it("서울고수도요금주식회사 → review, 서울아리수본부 공식 번호를 안전 연락처로", () => {
+    const r = verify(
+      job({ fields: { ...OK, issuer: "서울고수도요금주식회사", doc_title: "상수도요금 납부고지서", contact_phone: "02-1234-5678", info_url: "www.seoul-water.or.kr", payee_name: "" } }),
+    );
+    expect(r.verdict).toBe("review");
+    expect(r.reasons.some((x) => x.rule === "R7" && x.detail.includes("주식회사"))).toBe(true);
+    expect(r.safeContact?.phones).toContain("120");
+  });
+  it("가짜국민연금공단 → 등록 기관과 비슷한 이름이라 review (clear 로는 절대 안 올라간다)", () => {
+    const r = verify(job({ fields: { ...OK, issuer: "가짜국민연금공단" } }));
+    expect(r.verdict).toBe("review");
+    expect(r.issuerId).toBeUndefined();
+  });
+  it("공공 명칭이 없는 미등록 민간사(주식회사 케이티)는 그대로 unknown_issuer", () => {
+    const r = verify(job({ fields: { ...OK, issuer: "주식회사 케이티", contact_phone: "100", info_url: "www.kt.com", payee_name: "" } }));
+    expect(r.verdict).toBe("unknown_issuer");
+  });
+  it("부산광역시 상하수도 사업본부 — 등록 기관이지만 문서 URL 이 공식 도메인이 아니면 mismatch (합성 인쇄본 함정)", () => {
+    const r = verify(
+      job({ fields: { ...OK, issuer: "부산광역시 상하수도 사업본부", doc_title: "상하수도요금 독촉 고지서", contact_phone: "051-123-4567", info_url: "www.busan-water.kr", payee_name: "부산광역시 상하수도" } }),
+    );
+    expect(r.issuerId).toBe("busan_water");
+    expect(r.verdict).toBe("mismatch");
+  });
+  it("부산지방법원 — 공식 번호·도메인이면 clear", () => {
+    const r = verify(
+      job({ fields: { ...OK, issuer: "부산지방법원", doc_title: "소송 서류 송달", contact_phone: "051-590-1114", info_url: "busan.scourt.go.kr", payee_name: "" } }),
+    );
+    expect(r.issuerId).toBe("busan_court");
+    expect(r.verdict).toBe("clear");
   });
 });

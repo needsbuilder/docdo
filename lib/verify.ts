@@ -284,6 +284,51 @@ const sameValue = (a: unknown, b: unknown) =>
 
 // ── 본체 ────────────────────────────────────────────────────
 
+const PUBLIC_WORDS = /상하수도|상수도|수도요금|수도사업|건강보험|국민연금|전기요금|지방세|국세|세무서|법원|우체국|공단|공사|사업본부|시청|구청|군청/;
+const PRIVATE_WORDS = /주식회사|㈜|\(주\)|유한회사|상사$/;
+
+/** 2글자 한글 토큰으로 등록 기관과 겹치는지. "서울고수도요금주식회사" ↔ "서울특별시 상수도사업본부" = 서울·수도. */
+function lookalikeIssuer(name: string): Issuer | null {
+  const toks = new Set<string>();
+  const h = name.replace(/[^가-힣]/g, "");
+  for (let i = 0; i + 2 <= h.length; i++) toks.add(h.slice(i, i + 2));
+  let best: { issuer: Issuer; n: number } | null = null;
+  for (const iss of REGISTRY.issuers) {
+    const names = [iss.display_name, ...iss.aliases];
+    let n = 0;
+    const seen = new Set<string>();
+    for (const nm of names) {
+      const hh = nm.replace(/[^가-힣]/g, "");
+      for (let i = 0; i + 2 <= hh.length; i++) {
+        const t = hh.slice(i, i + 2);
+        if (toks.has(t) && !seen.has(t)) {
+          seen.add(t);
+          n++;
+        }
+      }
+    }
+    if (n >= 2 && (!best || n > best.n)) best = { issuer: iss, n };
+  }
+  return best?.issuer ?? null;
+}
+
+function suspiciousUnregistered(name: string): { detail: string; action: string; lookalike: Issuer | null } | null {
+  if (!name || !PUBLIC_WORDS.test(name)) return null;
+  const isPrivate = PRIVATE_WORDS.test(name);
+  const look = lookalikeIssuer(name);
+  if (!isPrivate && !look) return null;
+  const parts: string[] = [];
+  if (isPrivate) parts.push("공공요금·공공기관 이름을 쓰면서 민간법인(주식회사) 표기");
+  if (look) parts.push(`등록 기관 "${look.display_name}"과 이름이 비슷하지만 다름`);
+  return {
+    detail: `사칭 의심 — ${parts.join(" · ")}: ${name}`,
+    action: look
+      ? `이 문서의 번호·계좌로 연락·입금하지 말고 ${look.display_name} 공식 번호(${look.official_phones[0]})로 확인`
+      : "이 문서의 번호·계좌로 연락·입금하지 말고 발송 기관을 공식 경로로 확인",
+    lookalike: look,
+  };
+}
+
 export function verify(job: unknown): VerifyResult {
   const j = (typeof job === "object" && job !== null ? job : {}) as Job;
   const base: VerifyResult = { verdict: "failed", checks: [], reasons: [] };
@@ -487,6 +532,21 @@ export function verify(job: unknown): VerifyResult {
         detail: `레지스트리에 없는 기관: ${asText(fields.issuer) || "(읽지 못함)"}`,
         action: "판단 불가 — 자녀 확인",
       });
+      // R7 — 사칭 의심. 공공요금·공공기관 이름을 쓰는데 등록 기관이 아니고, 민간법인 표기이거나
+      // 등록 기관과 이름이 비슷하다. 확정 신호는 아니므로 빨강(mismatch)이 아니라 주황(review).
+      const sus = suspiciousUnregistered(asText(fields.issuer));
+      if (sus) {
+        out.verdict = "review";
+        out.reasons.push({ rule: "R7", detail: sus.detail, action: sus.action });
+        if (sus.lookalike) {
+          out.safeContact = {
+            phones: sus.lookalike.official_phones.slice(),
+            hosts: sus.lookalike.official_hosts.slice(),
+            source: sus.lookalike.source_urls.slice(),
+            verifiedAt: sus.lookalike.verified_at,
+          };
+        }
+      }
     }
     if (tokens.length) {
       out.checks.push({

@@ -10,7 +10,7 @@ function deepFreeze<T>(o: T): T {
   return o;
 }
 
-// 5개 기관 시범 적용이다. 전국 공공기관을 지원하지 않으며 민간 사업자는 대조 대상이 아니다.
+// 8개 기관 시범 적용이다. 전국 공공기관을 지원하지 않으며 민간 사업자는 대조 대상이 아니다.
 export const REGISTRY = deepFreeze(
   raw as unknown as {
     issuers: Issuer[];
