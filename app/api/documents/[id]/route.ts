@@ -132,6 +132,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // mismatch(확정 불일치)는 승인 불가. 기관 미상·대조 불가는 허용한다 — 납부는 문서의 계좌가 아니라
     // 포털이 전자납부번호로 조회한 고지에 하므로, 진짜 가드는 워커의 "포털 조회 결과 = 문서 금액" 대조다.
     if (doc.verdict === "mismatch") return json({ error: "공식 정보와 다른 문서는 처리할 수 없습니다" }, 409);
+    if ((doc.result.reasons ?? []).some((x) => x.rule === "R7")) return json({ error: "사칭이 의심되는 문서는 처리할 수 없습니다" }, 409);
     const fc = (doc.result.fieldConfidence ?? {}) as Record<string, string>;
     if (fc.epn !== "high" || fc.amount_krw !== "high") return json({ error: "전자납부번호와 금액을 확실히 읽은 문서만 처리할 수 있습니다" }, 409);
     // 워커가 죽어 running/waiting 에 박힌 문서는 15분이 지나면 다시 승인할 수 있다. 그 전엔 멱등.

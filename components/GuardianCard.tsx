@@ -65,8 +65,9 @@ export default function GuardianCard({
   const done = d.resolution_status === "done";
   const conf2 = r?.fieldConfidence ?? {};
   // 승인 가능: 판정이 나왔고, 불일치가 아니고, 전자납부번호·금액을 확실히 읽었을 때만.
+  const suspected = (r?.reasons ?? []).some((x) => x.rule === "R7");
   const canApprove =
-    !!r && d.verdict !== "mismatch" && conf2.epn === "high" && typeof f.epn === "string" && !!amount &&
+    !!r && d.verdict !== "mismatch" && !suspected && conf2.epn === "high" && typeof f.epn === "string" && !!amount &&
     (d.action_status === "none" || d.action_status === "failed" || d.action_status === "blocked");
   const agentActive = d.action_status === "queued" || d.action_status === "running" || d.action_status === "waiting";
 
