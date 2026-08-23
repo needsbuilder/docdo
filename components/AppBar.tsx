@@ -8,12 +8,12 @@ import { ChevronLeft } from "@/components/icons";
 // 경고(mismatch)만 예외로 띠 전체가 빨강이다. 색·위치·글자가 같은 말을 해야 한다.
 
 export function Wordmark({ size = "md", tone = "dark" }: { size?: "md" | "lg"; tone?: "light" | "dark" }) {
-  const mark = size === "lg" ? 34 : 28;
+  const mark = size === "lg" ? 40 : 32;
   const word = size === "lg" ? 22 : 18;
   return (
     <span className="inline-flex items-center gap-2.5">
-      {/* 시안의 로고 마크(주황 문서). 워드마크 "docdo" 는 흰 띠 위에서만 쓴다 — 빨간 띠엔 글자로. */}
-      <Image src="/brand/logo-mark.png" alt="" width={mark} height={Math.round((mark * 2182) / 1874)} priority className="shrink-0" />
+      {/* 로고 마크 — 문서를 안은 보라 마스코트(정사각). 워드마크 "docdo" 는 흰 띠 위에서만 쓴다 — 빨간 띠엔 글자로. */}
+      <Image src="/brand/logo-mark.png" alt="" width={mark} height={mark} priority className="shrink-0 rounded-[8px]" />
       {tone === "dark" ? (
         <Image src="/brand/wordmark.png" alt="독도 DocDo" width={Math.round((word * 3902) / 950)} height={word} priority />
       ) : (
