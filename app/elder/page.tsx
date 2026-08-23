@@ -238,18 +238,18 @@ export default function Elder() {
       )}
 
       {(stage === "uploading" || stage === "waiting") && (
-        <div className="mt-8 flex w-full flex-col gap-5" aria-live="polite">
-          <h1 className="text-title text-ink">{stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}</h1>
+        // 사진이 먼저, 글은 아래. "이 종이"를 처리 중이라는 신호가 먼저 보이고 상태 문구는 그 밑에서 바뀐다.
+        <div className="mt-4 flex w-full flex-col gap-4" aria-live="polite">
           {preview && (
-            // 찍은 사진 그대로. 결과와 무관하게 "이 종이"를 처리 중이라는 신호다.
             <div className="w-full overflow-hidden rounded-sheet bg-well">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="방금 찍은 우편물" className="block max-h-[52dvh] w-full object-contain" />
+              <img src={preview} alt="방금 찍은 우편물" className="block max-h-[44dvh] w-full object-contain" />
             </div>
           )}
           <div className="h-2.5 w-full overflow-hidden rounded-chip bg-line-soft">
             <div className="h-full rounded-chip bg-brand transition-[width] duration-1000 ease-linear" style={{ width: `${Math.round(progress * 100)}%` }} />
           </div>
+          <h1 className="text-lead text-ink">{stage === "uploading" ? WAIT_TEXT[0] : waitLine(seconds)}</h1>
           <p className="text-note text-ink-soft">보통 30초 안에 끝나요. 화면을 닫지 말고 기다려 주세요.</p>
         </div>
       )}
