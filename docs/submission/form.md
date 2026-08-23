@@ -57,4 +57,4 @@
 
 - Demo: https://docdo.vercel.app (iPhone Safari · 데스크톱)
 - Source: https://github.com/needsbuilder/docdo — 전체 공개, 사용한 오픈소스는 README
-- 팀 Reporch(37) · Upstage Studio 트랙
+- 팀 정션없음(37) · Upstage Studio 트랙

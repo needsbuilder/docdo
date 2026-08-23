@@ -21,7 +21,7 @@
 **한계** — `clear` 는 "확인된 불일치 없음"이지 "진짜"가 아닙니다. 공식 연락처를 그대로 복사한 사칭 문서는 이 방식으로 탐지하지 못합니다. 레지스트리는 8개 기관 시범 적용이며 민간 사업자는 대조 대상이 아닙니다. 실제 인터넷지로는 인증 이후 단계가 미구현이라 시연용 포털에서 처리합니다.
 
 - Demo: https://docdo.vercel.app · Source: https://github.com/needsbuilder/docdo (오픈소스 목록은 README)
-- 팀 Reporch · Upstage Studio 트랙
+- 팀 정션없음 · Upstage Studio 트랙
 
 ## 영어 한 줄 (필요 시)
 

@@ -6,7 +6,7 @@
 
 - **데모** https://docdo.vercel.app
 - **소스** https://github.com/needsbuilder/docdo
-- JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 **Reporch**
+- JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 **정션없음**
 
 ---
 

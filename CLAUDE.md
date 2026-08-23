@@ -1,6 +1,6 @@
 # DocDo — 항상 참인 규칙
 
-JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 Reporch(37)
+JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 정션없음(37)
 
 > 진행 상태는 여기 없다. `~/projects/_sandbox/현황판.md`의 `junctionx-korea` 항목을 본다.
 > 세션 재개 시 `docs/이어받기-2026-08-23.md`부터 읽는다.

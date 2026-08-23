@@ -339,7 +339,7 @@ export default function DemoGiro() {
       <footer className="border-t border-[#dfe4ea] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-1 px-5 py-5 text-[12px] text-[#7a8796] md:flex-row md:items-center md:justify-between">
           <span>이 포털은 DocDo 해커톤 시연을 위한 가상 환경입니다. 실제 금융 거래가 발생하지 않습니다.</span>
-          <span>JunctionX Korea 2026 · Reporch</span>
+          <span>JunctionX Korea 2026 · 정션없음</span>
         </div>
       </footer>
     </div>
