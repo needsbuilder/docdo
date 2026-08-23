@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { GuardianDoc } from "@/lib/dto";
 import GuardianCard from "@/components/GuardianCard";
 import AppBar from "@/components/AppBar";
+import { pointManifest } from "@/lib/pwa";
 import { Tray, Check, Share } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
@@ -56,6 +57,9 @@ export default function Guardian() {
       setAuth("anon");
     }
   }, []);
+
+  // 보호자 폰의 홈 화면 아이콘은 /guardian 으로 시작한다.
+  useEffect(() => pointManifest("role=guardian"), []);
 
   useEffect(() => {
     const ac = new AbortController();

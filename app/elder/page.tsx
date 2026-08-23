@@ -5,6 +5,7 @@ import { compress } from "@/lib/compress";
 import { primeSpeech, speak } from "@/lib/speak";
 import { pollDocument, PollTimeout, type DocView } from "@/lib/poll";
 import { readElderToken, clearElderToken } from "@/lib/elderToken";
+import { pointManifest } from "@/lib/pwa";
 import ElderResult from "@/components/ElderResult";
 import AppBar from "@/components/AppBar";
 import { Envelope, CameraLine, ImageLine, AlertTriangle } from "@/components/icons";
@@ -58,6 +59,11 @@ export default function Elder() {
     const t = setTimeout(() => setToken(readElderToken()), 0);
     return () => clearTimeout(t);
   }, []);
+
+  // 이 상태에서 "홈 화면에 추가"하면 아이콘이 연결된 어르신 화면으로 바로 열린다(iOS 는 Safari 와 저장소가 다르다).
+  useEffect(() => {
+    if (token) pointManifest(`h=${encodeURIComponent(token)}`);
+  }, [token]);
 
   // 화면을 떠나면 진행 중인 것을 전부 멈춘다. 압축 중이어도 마찬가지다.
   useEffect(() => {
