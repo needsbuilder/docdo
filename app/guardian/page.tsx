@@ -385,29 +385,40 @@ export default function Guardian() {
         )}
       </div>
 
-      {/* 어르신 초대 링크. 한 번만 보내면 된다 — 어르신 폰에 저장된다. */}
-      <section className="mb-6 rounded-card bg-well p-5">
-        <h2 className="text-g-body font-bold text-ink">부모님 폰에 보낼 링크</h2>
-        <p className="mt-1 text-g-body text-ink-mid">
-          부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={shareLink}
-            className="press on-brand inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
-          >
-            {copied ? <Check size={20} /> : <ArrowSquareOut size={18} />}
-            {copied ? "복사됨" : "링크 보내기"}
-          </button>
-          <code className="min-w-0 break-all text-g-meta text-ink-soft">{elderLink}</code>
-        </div>
-      </section>
+      {/* 어르신 초대 링크. 우편물이 한 건이라도 왔으면 부모님 폰이 연결된 것 — 그 뒤로는 맨 아래 한 줄로 줄인다. */}
+      {docs.length === 0 && (
+        <section className="mb-6 rounded-card bg-well p-5">
+          <h2 className="text-g-body font-bold text-ink">부모님 폰에 보낼 링크</h2>
+          <p className="mt-1 text-g-body text-ink-mid">
+            부모님이 이 링크를 한 번 열어 두시면, 그 뒤로는 가입 없이 찍은 우편물이 여기로 옵니다.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={shareLink}
+              className="press on-brand inline-flex min-h-tap items-center gap-2 rounded-control border-2 border-brand bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+            >
+              {copied ? <Check size={20} /> : <ArrowSquareOut size={18} />}
+              {copied ? "복사됨" : "링크 보내기"}
+            </button>
+            <code className="min-w-0 break-all text-g-meta text-ink-soft">{elderLink}</code>
+          </div>
+        </section>
+      )}
 
       <div className="space-y-5">
         {docs.map((d) => (
           <GuardianCard key={d.id} doc={d} onMark={mark} onApprove={approve} onInput={sendInput} />
         ))}
+
+        {docs.length > 0 && (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-g-meta text-ink-soft">
+            부모님 폰이 연결돼 있습니다.
+            <button type="button" onClick={shareLink} className="press min-h-tap rounded-inner px-1 font-bold text-brand active:bg-brand-tint">
+              {copied ? "복사됨" : "링크 다시 보내기"}
+            </button>
+          </p>
+        )}
 
         {loaded && docs.length === 0 && (
           <div className="flex flex-col items-center gap-3 rounded-card bg-well px-6 py-12 text-center">
