@@ -6,6 +6,7 @@ import type { GuardianDoc } from "@/lib/dto";
 import GuardianCard from "@/components/GuardianCard";
 import AppBar from "@/components/AppBar";
 import { pointManifest } from "@/lib/pwa";
+import { pushState, enablePush, type PushState } from "@/lib/pushClient";
 import { Tray, Check, Share } from "@/components/icons";
 
 // 여기에 모든 행동이 모인다. 어르신 화면에는 없는 것들이다.
@@ -33,6 +34,8 @@ export default function Guardian() {
   const [loaded, setLoaded] = useState(false);
   // 시안(문서함)의 상태 칩. 클라이언트 필터 — 목록 API 는 그대로.
   const [filter, setFilter] = useState<"all" | "attention" | "done">("all");
+  // 푸시 알림 상태. iOS 는 홈 화면에 추가한 웹앱에서만 된다 — 그 안내까지 한 줄로.
+  const [push, setPush] = useState<PushState | null>(null);
   const inFlight = useRef<Set<string>>(new Set());
   const listInFlight = useRef(false);
 
@@ -148,6 +151,23 @@ export default function Guardian() {
       listInFlight.current = false;
     }
   }, []);
+
+  useEffect(() => {
+    if (auth !== "ok") return;
+    let on = true;
+    pushState().then((s) => on && setPush(s)).catch(() => {});
+    return () => {
+      on = false;
+    };
+  }, [auth]);
+
+  async function turnOnPush() {
+    try {
+      setPush(await enablePush());
+    } catch {
+      setPush("off");
+    }
+  }
 
   useEffect(() => {
     if (auth !== "ok") return;
@@ -404,6 +424,20 @@ export default function Guardian() {
           </p>
         )}
       </div>
+
+      {/* 푸시 알림 — 우편물 도착·보호자 차례를 폰으로. 한 줄, 켜지면 사라진다. */}
+      {push === "off" && (
+        <button type="button" onClick={turnOnPush} className="press mb-4 flex min-h-tap w-full items-center justify-between gap-3 rounded-card bg-brand-tint px-4 text-left text-g-body text-brand-deep active:bg-brand/20">
+          <span>부모님이 우편물을 찍으면 알림으로 받기</span>
+          <span className="shrink-0 font-bold">알림 켜기</span>
+        </button>
+      )}
+      {push === "needs-install" && (
+        <p className="mb-4 rounded-card bg-well px-4 py-3 text-g-meta text-ink-mid">알림을 받으려면 Safari 공유 버튼 → <strong className="text-ink">홈 화면에 추가</strong> 한 뒤 그 아이콘으로 열어 주세요.</p>
+      )}
+      {push === "denied" && (
+        <p className="mb-4 rounded-card bg-well px-4 py-3 text-g-meta text-ink-mid">알림이 꺼져 있어요. 설정 → 독도 → 알림에서 켤 수 있어요.</p>
+      )}
 
       {/* 시안(문서함)의 상태 칩. */}
       {docs.length > 0 && (

@@ -63,6 +63,9 @@ export type NewDoc = {
 
 export type DocPatch = Partial<Omit<DocRow, "id" | "household_id" | "created_at">>;
 
+/** 웹 푸시 구독. 브라우저가 준 그대로 저장한다(endpoint + keys). */
+export type PushSub = { endpoint: string; keys: { p256dh: string; auth: string }; expirationTime?: number | null };
+
 export type Guardian = {
   id: string;
   email: string;
@@ -70,6 +73,8 @@ export type Guardian = {
   household_id: string;
   elder_token: string;
   created_at: string;
+  /** 보호자 폰의 푸시 구독들(기기마다 하나). 없으면 빈 배열. */
+  push_subscriptions?: PushSub[];
 };
 
 export type NewGuardian = Omit<Guardian, "id" | "created_at" | "household_id"> & { household_id?: string };
@@ -87,6 +92,9 @@ export interface DocStore {
   guardianByEmail(email: string): Promise<Guardian | null>;
   guardianById(id: string): Promise<Guardian | null>;
   guardianByElderToken(token: string): Promise<Guardian | null>;
+  /** 알림용. 가구의 보호자 전부. */
+  guardiansByHousehold(householdId: string): Promise<Guardian[]>;
+  setPushSubscriptions(id: string, subs: PushSub[]): Promise<void>;
 
   /** 워커용. 승인된 문서 하나를 집어 running 으로 바꾼다. 없으면 null. */
   claimAction(): Promise<DocRow | null>;
@@ -114,7 +122,7 @@ function supabase(): SupabaseClient {
 
 const COLUMNS =
   "id, household_id, created_at, pipeline_status, resolution_status, upstage_job_id, upstage_file_id, action_type, verdict, result, phrases, reviewed_at, done_at, action_status, action_trace, action_result, approved_at, action_live, action_wait, action_inputs, action_run";
-const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at";
+const G_COLUMNS = "id, email, password_hash, household_id, elder_token, created_at, push_subscriptions";
 
 async function gOne(q: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<Guardian | null> {
   const { data, error } = await q;
@@ -197,6 +205,15 @@ const supabaseStore: DocStore = {
   },
   guardianByElderToken(token) {
     return gOne(supabase().from("guardians").select(G_COLUMNS).eq("elder_token", token).maybeSingle());
+  },
+  async guardiansByHousehold(householdId) {
+    const { data, error } = await supabase().from("guardians").select(G_COLUMNS).eq("household_id", householdId);
+    if (error) throw new Error(`guardians 조회 실패: ${error.message}`);
+    return (data ?? []) as Guardian[];
+  },
+  async setPushSubscriptions(id, subs) {
+    const { error } = await supabase().from("guardians").update({ push_subscriptions: subs }).eq("id", id);
+    if (error) throw new Error(`push 구독 저장 실패: ${error.message}`);
   },
 };
 
@@ -344,6 +361,17 @@ const fileStore: DocStore = {
   },
   async guardianByElderToken(token) {
     return (await readGuardians()).find((r) => r.elder_token === token) ?? null;
+  },
+  async guardiansByHousehold(householdId) {
+    return (await readGuardians()).filter((r) => r.household_id === householdId);
+  },
+  setPushSubscriptions(id, subs) {
+    return serialize(async () => {
+      const rows = await readGuardians();
+      const i = rows.findIndex((r) => r.id === id);
+      if (i >= 0) rows[i] = { ...rows[i], push_subscriptions: subs };
+      await writeGuardians(rows);
+    });
   },
 };
 

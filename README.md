@@ -98,6 +98,7 @@ npm run dev                  # http://localhost:3000
 | `AUTH_SECRET` | 필수 | 보호자 세션 서명 키(16자 이상 난수). 없으면 보호자 화면이 열리지 않는다 |
 | `ELEVENLABS_API_KEY` | 선택 | 어르신 음성. 없으면 기기 내장 TTS 로 폴백한다. **서버 전용** |
 | `AGENT_SECRET` | 에이전트 | 워커가 서버에 자신을 증명하는 비밀. 서버(Vercel)와 워커(Railway) 양쪽에 같은 값 |
+| `VAPID_PUBLIC_KEY` `VAPID_PRIVATE_KEY` `VAPID_SUBJECT` | 선택 | 보호자 웹 푸시. 없으면 알림 켜기 줄이 뜨지 않는다. `npx web-push generate-vapid-keys` |
 
 Supabase 없이도 전체 흐름이 로컬에서 돈다. 스키마는 `supabase/schema.sql`.
 
@@ -176,6 +177,7 @@ AGENT_ADAPTER=giro …                                      # 실제 인터넷�
 
 | [Playwright](https://github.com/microsoft/playwright) | Apache-2.0 | 에이전트 워커의 브라우저(Chromium) |
 | [tsx](https://github.com/privatenumber/tsx) | MIT | 워커 실행 |
+| [web-push](https://github.com/web-push-libs/web-push) | MIT | 보호자 웹 푸시(VAPID) |
 | [Phosphor Icons](https://github.com/phosphor-icons/core) | MIT | 아이콘 — 패스 데이터만 `components/icons.tsx` 에 옮겨 담았다(npm 의존 없음) |
 | [KoddiUD 온고딕](https://www.koddi.or.kr/) | CC BY-SA 4.0 | 서체 (`public/fonts/`) — 한국장애인개발원 × 윤디자인 |
 

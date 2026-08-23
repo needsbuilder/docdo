@@ -3,6 +3,8 @@ import { store, type DocRow } from "@/lib/store";
 import { fetchJob, deleteFile } from "@/lib/upstage";
 import { verify } from "@/lib/verify";
 import { buildPhrases } from "@/lib/phrase";
+import { VERDICT_LABEL } from "@/lib/verify";
+import { notifyHousehold } from "@/lib/push";
 
 // 문서 한 건을 Upstage 결과로 한 걸음 진행시킨다. 요청당 Upstage 조회는 딱 1회.
 // 어르신 폰의 폴링(/api/documents/[id])과 워커의 정기 점검(/api/agent/sweep)이 같은 함수를 쓴다 —
@@ -71,6 +73,13 @@ export async function advanceDocument(doc: DocRow): Promise<Advance> {
     const ok = await deleteFile(doc.upstage_file_id);
     await db.update(doc.id, { upstage_file_id: ok ? null : doc.upstage_file_id }).catch(() => {});
   }
+  // 보호자 푸시 — 판정이 처음 실린 순간 한 번. 값은 싣지 않는다(제목·판정만).
+  await notifyHousehold(doc.household_id, {
+    title: "부모님이 우편물을 찍었어요",
+    body: `${phrases.docLabel} · ${VERDICT_LABEL[result.verdict] ?? result.verdict}`,
+    url: "/guardian",
+    tag: `doc-${doc.id}`,
+  }).catch(() => {});
   return { kind: "done", doc: updated ?? { ...doc, pipeline_status: status, result, phrases, verdict: result.verdict } };
 }
 

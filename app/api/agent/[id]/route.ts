@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyHousehold } from "@/lib/push";
 import { store, type TraceStep, type ActionResult, type ActionWait, type AgentInput } from "@/lib/store";
 import { agentAuthorized } from "@/lib/agentAuth";
 import { NO_STORE } from "@/lib/auth";
@@ -78,5 +79,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
   const data = Object.keys(patch).length ? await db.update(id, patch) : doc;
+
+  // 보호자 푸시 — 상태가 바뀐 순간에만. 실패해도 워커 흐름을 막지 않는다.
+  const label = doc.phrases?.docLabel ?? "우편물";
+  if (patch.action_status === "waiting" && doc.action_status !== "waiting") {
+    await notifyHousehold(doc.household_id, { title: "보호자 차례예요", body: `${label} · ${patch.action_wait?.reason ?? "직접 확인이 필요해요"}`, url: "/guardian", tag: `agent-${id}` }).catch(() => {});
+  } else if (body.status === "done" && doc.action_status !== "done") {
+    await notifyHousehold(doc.household_id, { title: "처리됐어요", body: body.result?.summary ?? `${label} 처리 완료`, url: "/guardian", tag: `agent-${id}` }).catch(() => {});
+  } else if ((body.status === "blocked" || body.status === "failed") && !FINAL.has(doc.action_status)) {
+    await notifyHousehold(doc.household_id, { title: "독도가 멈췄어요", body: body.result?.summary ?? `${label} · 확인이 필요해요`, url: "/guardian", tag: `agent-${id}` }).catch(() => {});
+  }
   return json({ ok: true, action_status: data?.action_status, inputs: (data?.action_inputs ?? []) as AgentInput[] });
 }

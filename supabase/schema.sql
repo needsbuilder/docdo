@@ -15,8 +15,11 @@ create table if not exists guardians (
   household_id uuid not null default gen_random_uuid(),
   -- 어르신 초대 링크 토큰. 추측 불가능해야 한다(32바이트 난수). 가구 id 와 다르다.
   elder_token text not null unique,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- 보호자 폰의 웹 푸시 구독(기기마다 하나). 브라우저가 준 endpoint+keys 그대로.
+  push_subscriptions jsonb not null default '[]'::jsonb
 );
+alter table guardians add column if not exists push_subscriptions jsonb not null default '[]'::jsonb;
 
 create index if not exists guardians_household_idx on guardians (household_id);
 
