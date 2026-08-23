@@ -209,7 +209,7 @@ export default function GuardianCard({
               <button
                 type="button"
                 onClick={() => onApprove(d.id, "demo")}
-                className="press on-brand min-h-cta rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep"
+                className="press on-brand min-h-cta rounded-control bg-brand-deep px-4 text-g-title text-surface active:bg-brand-press"
               >
                 {d.action_status === "none" ? `납부 처리 승인 · ${amount}` : "다시 처리 승인"}
               </button>
@@ -231,7 +231,7 @@ export default function GuardianCard({
             confirm ? (
               <>
                 <span className="flex min-h-tap items-center text-g-body text-ink">직접 처리하셨나요? 부모님 화면도 바뀝니다.</span>
-                <button type="button" onClick={() => { setConfirm(false); onMark(d.id, "done"); }} className="press on-brand min-h-cta rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep">
+                <button type="button" onClick={() => { setConfirm(false); onMark(d.id, "done"); }} className="press on-brand min-h-cta rounded-control bg-brand-deep px-4 text-g-title text-surface active:bg-brand-press">
                   네, 처리했어요
                 </button>
                 <button type="button" onClick={() => setConfirm(false)} className="press min-h-tap rounded-control bg-well px-4 text-g-body font-bold text-ink active:bg-brand-tint">

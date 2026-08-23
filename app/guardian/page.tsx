@@ -349,7 +349,7 @@ export default function Guardian() {
             inputMode="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="min-h-16 rounded-control border-[1.5px] border-line bg-surface px-4 text-g-title font-normal text-ink focus:border-brand focus:outline-none"
+            className="min-h-16 rounded-control border-[1.5px] border-line bg-surface px-4 text-g-title font-normal text-ink focus:border-brand"
             required
           />
           <label htmlFor="password" className="mt-3 text-g-meta font-bold text-ink">
@@ -362,13 +362,13 @@ export default function Guardian() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
-            className="min-h-16 rounded-control border-[1.5px] border-line bg-surface px-4 text-g-title font-normal text-ink focus:border-brand focus:outline-none"
+            className="min-h-16 rounded-control border-[1.5px] border-line bg-surface px-4 text-g-title font-normal text-ink focus:border-brand"
             required
           />
           <button
             type="submit"
             disabled={busy}
-            className="press on-brand mt-5 min-h-cta rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep disabled:opacity-60"
+            className="press on-brand mt-5 min-h-cta rounded-control bg-brand-deep px-4 text-g-title text-surface active:bg-brand-press disabled:opacity-60"
           >
             {busy ? "처리 중…" : mode === "signup" ? "가입하고 링크 만들기" : "로그인"}
           </button>
@@ -448,7 +448,7 @@ export default function Guardian() {
           <button
             type="button"
             onClick={shareLink}
-            className="press on-brand mt-3 inline-flex min-h-cta w-full items-center justify-center gap-2 rounded-control bg-brand px-4 text-g-title text-surface active:bg-brand-deep"
+            className="press on-brand mt-3 inline-flex min-h-cta w-full items-center justify-center gap-2 rounded-control bg-brand-deep px-4 text-g-title text-surface active:bg-brand-press"
           >
             {copied ? <Check size={20} /> : <Share size={20} />}
             {copied ? "링크를 복사했어요" : "부모님께 초대 링크 보내기"}

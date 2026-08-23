@@ -99,7 +99,7 @@ export default function AgentTrace({
             />
           )}
           <figcaption
-            className={`absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-g-meta font-bold text-surface ${remote ? "bg-warn" : "bg-danger"}`}
+            className={`absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-chip px-2 py-0.5 text-g-meta font-bold text-surface ${remote ? "bg-warn-ink" : "bg-danger-ink"}`}
           >
             <span className="size-2 animate-pulse rounded-full bg-surface" />
             {remote ? "화면을 눌러 직접 조작" : "실시간"}
@@ -136,7 +136,7 @@ export default function AgentTrace({
         <button
           type="button"
           onClick={() => onInput({ kind: "resume" })}
-          className="press on-brand mt-3 min-h-cta w-full rounded-control bg-brand px-4 text-g-body font-bold text-surface active:bg-brand-deep"
+          className="press on-brand mt-3 min-h-cta w-full rounded-control bg-brand-deep px-4 text-g-body font-bold text-surface active:bg-brand-press"
         >
           {wait?.mode === "confirm" ? "인증했어요 · 이어서 하기" : "이 단계 끝났어요 · 이어서 하기"}
         </button>

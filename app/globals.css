@@ -47,12 +47,13 @@
   --color-ink: #191f28; /* 본문·핵심값 (16.2) */
   --color-ink-mid: #333d4b; /* 부제 (10.4) */
   --color-ink-soft: #6b7684; /* 메타 (4.6 AA) */
-  --color-line: #d1d6db; /* 입력 테두리 */
+  --color-line: #7d8794; /* 입력 테두리 (비텍스트 3:1 통과) */
   --color-line-soft: #e5e8eb; /* 구분선 */
 
   /* 브랜드 — 시안의 파랑. 흰 글자는 18px 이상 Bold 에서만(3.6:1 = 큰 글씨 AA). 어르신 버튼 라벨은 28px 라 충족. */
   --color-brand: #3182f6;
-  --color-brand-deep: #1b64da; /* pressed · 틴트 위 글자 (5.0) */
+  --color-brand-deep: #1b64da; /* 16~18px 흰 글자 버튼의 면 · 틴트 위 글자 (5.0). brand(3.7) 는 28px 어르신 버튼에만 */
+  --color-brand-press: #1552b8; /* brand-deep 의 pressed */
   --color-brand-tint: #eaf4ff; /* 아이콘 박스 · 선택 면 */
   --color-band: #ffffff; /* 앱바 — 시안은 흰 바탕 위 가운데 제목 */
 
@@ -187,7 +188,7 @@ html {
   }
   @media (prefers-contrast: more) {
     :root {
-      --color-line: #8b95a1;
+      --color-line: #4e5968;
       --color-ink-soft: #4e5968;
     }
   }

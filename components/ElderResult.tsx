@@ -107,7 +107,8 @@ export default function ElderResult({
   // 진행 3단계(시안 20). 상태는 색 + 아이콘 + 글자 3중 신호. 값·금액은 여기에 싣지 않는다.
   const agentActive = cur.action_status === "running" || cur.action_status === "queued" || cur.action_status === "waiting";
   const agentDone = cur.action_status === "done";
-  const handled = agentDone || cur.resolution_status === "done";
+  // 완료 문서도 다시 승인할 수 있다 — 재처리 중이면 "처리 중"이 "처리함"보다 먼저다(기존 삼항과 같은 순서).
+  const handled = !agentActive && (agentDone || cur.resolution_status === "done");
   const seen = handled || agentActive || cur.resolution_status === "acknowledged";
   const steps: { icon: typeof Doc; title: string; desc: string; tone: StepTone }[] = [
     { icon: Doc, title: "우편물을 읽었어요", desc: "찍은 사진을 읽어 정리했어요", tone: "done" },

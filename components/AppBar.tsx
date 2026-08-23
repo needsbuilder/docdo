@@ -46,7 +46,7 @@ export default function AppBar({
 }) {
   const danger = tone === "danger";
   const h = size === "lg" ? "min-h-tap-elder" : "min-h-16";
-  const iconBtn = `on-brand inline-flex size-12 shrink-0 items-center justify-center rounded-inner ${danger ? "text-surface active:bg-surface/20" : "text-ink active:bg-well"}`;
+  const iconBtn = `inline-flex size-12 shrink-0 items-center justify-center rounded-inner ${danger ? "on-brand text-surface active:bg-surface/20" : "text-ink active:bg-well"}`;
   const backEl = onBack ? (
     <button type="button" onClick={onBack} aria-label="뒤로" className={iconBtn}>
       <ChevronLeft size={28} />
