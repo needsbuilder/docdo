@@ -1,0 +1,23 @@
+{
+  "worktree": {
+    "setup": [
+      "npm ci",
+      "if [ -f \"$PASEO_SOURCE_CHECKOUT_PATH/.env.local\" ]; then cp \"$PASEO_SOURCE_CHECKOUT_PATH/.env.local\" .env.local; fi"
+    ]
+  },
+  "scripts": {
+    "dev": {
+      "type": "service",
+      "command": "npm run dev -- --hostname \"$HOST\" --port \"$PASEO_PORT\""
+    },
+    "test": { "command": "npm run test" },
+    "lint": { "command": "npm run lint" },
+    "build": { "command": "npm run build" }
+  },
+  "metadataGeneration": {
+    "title": { "instructions": "Use a short, outcome-focused title." },
+    "branchName": { "instructions": "Use a task-appropriate feat/, fix/, chore/, or docs/ prefix followed by a short kebab-case English description." },
+    "commitMessage": { "instructions": "Use Conventional Commits with an appropriate scope and an imperative subject." },
+    "pullRequest": { "instructions": "Start with a one-sentence summary, then include a Testing section with the commands run and their results." }
+  }
+}
