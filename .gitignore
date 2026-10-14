@@ -24,3 +24,6 @@ next-env.d.ts
 
 # 로컬 파일 저장소 (Supabase 미설정 시)
 .data/
+.env*.local
+junctionx-이의제기-대응.md
+AGENTS.md

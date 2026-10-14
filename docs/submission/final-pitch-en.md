@@ -28,7 +28,7 @@ Hi, we're team Jeongsyeon-eopseum, and this is DocDo. The name means two things:
 
 Let me start with Gyeongbuk. More than one in four residents here is 65 or older, among the highest rates in the country. At the county level it's sharper. In Uiseong, one in two residents is over 65, the highest of all 226 districts in Korea. Nineteen of Gyeongbuk's cities and counties are already super-aged, more than any other province, and four in ten households have an older adult in them.
 
-And for these people, government still arrives on paper. Local tax, water, health insurance, pension notices, welfare applications. All mail. And crime is following the mail. Among voice-phishing victims, the share aged 60 and over went from 16 percent in 2020 to over 30 percent in the first half of last year, and the regulator's new top scam is fake "registered mail delivery" messages. The mailbox has become the closest attack path to a senior.
+And for these people, government still arrives on paper. Local tax, water, health insurance, pension notices, welfare applications. All mail. And crime is following the mail. Among voice-phishing victims, the share aged 60 and over went from 16 percent in 2020 to over 30 percent as of August 2025, and the financial regulator's prevention campaign warns about fake "registered mail delivery" messages. The mailbox has become the closest attack path to a senior.
 
 This project started with a teammate's family. A parent alone in the countryside, the children in the city. A bill arrives, the parent photographs it and sends it over chat, the child explains by phone, and still nobody is sure whether it should be paid.
 
@@ -130,4 +130,6 @@ Originals are deleted from Upstage after processing and we store no images. The 
 
 ---
 
-Sources: Statistics Korea, "2025 Statistics on the Aged" (Gyeongbuk 65+ share 26.1%, second after Jeonnam 27.4%) · Ministry of the Interior resident registration, Sept 2025 (Gyeongbuk 24.5%, 539k) · 2025 district-level aging rates (Uiseong 49.2%, highest of 226) · Kyongbuk Maeil (19 super-aged districts, most of any province) · households with an older adult 38.7% · Financial Supervisory Service voice-phishing statistics (victims 60+: 16% in 2020 → 30.6% in H1 2025; fake registered-mail delivery scams).
+Sources: Statistics Korea, "2025 Statistics on the Aged" (Gyeongbuk 65+ share 26.1%, second after Jeonnam 27.4%) · Ministry of the Interior resident registration, Sept 2025 (Gyeongbuk 24.5%, 539k) · 2025 district-level aging rates (Uiseong 49.2%, highest of 226) · Kyongbuk Maeil (19 super-aged districts, most of any province) · households with an older adult 38.7% · National Police Agency data released by Rep. Nam In-soon's office (voice-phishing victims aged 60+: 16% in 2020 → 30.6% as of Aug 2025) · Financial Supervisory Service prevention campaign (fake "misdelivered registered mail" scams).
+
+> Correction (2026-10-15): earlier versions credited the 30.6% figure to the Financial Supervisory Service and dated it H1 2025. The source is National Police Agency data (as of Aug 2025).
