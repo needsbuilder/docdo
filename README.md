@@ -7,6 +7,7 @@
 The name carries two things: **Dokdo**, the Korean island, and **doc do**, a document that acts.
 
 - **Live demo:** https://docdo.vercel.app
+- **Demo video (1:31):** [docs/demo/docdo-demo.mp4](docs/demo/docdo-demo.mp4), recorded on the live site on 2026-10-15 with the team's synthetic sample bills
 - **[Upstage] Track Winner**, JunctionX Korea 2026 (Upstage Studio track), team 정션없음
 - **Credits:** concept, all code and the pitch by [Yongbeom Gwon](https://github.com/needsbuilder). The logo, mascot, line icons and visual style come from the team designer (see [Assets and license](#assets-and-license)).
 

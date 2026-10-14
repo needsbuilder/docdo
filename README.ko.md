@@ -7,6 +7,7 @@
 이름은 두 가지를 담았다 — 한국 땅 **독도**, 그리고 **doc do**(문서가 행동한다).
 
 - **데모** https://docdo.vercel.app
+- **시연 영상(1분 31초)** [docs/demo/docdo-demo.mp4](docs/demo/docdo-demo.mp4) — 2026-10-15 실서비스에서 팀 합성 고지서로 녹화
 - **소스** https://github.com/needsbuilder/docdo
 - JunctionX Korea 2026 · Upstage Studio 트랙 · 팀 **정션없음** · **[Upstage] Track Winner**
 
